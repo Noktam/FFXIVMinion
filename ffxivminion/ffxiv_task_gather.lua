@@ -539,7 +539,6 @@ function c_nextgatherlocation:evaluate()
 		for i, location in spairs(locations) do
 			if (i == gGatherStartLocation) then
 				bestLocation = location
-				--d("best location used block 1")
 				startHour = location.hour
 			end
 			if (bestLocation ~= nil) then
@@ -1286,7 +1285,7 @@ function ffxiv_task_gather.AddGatherLocation()
 		marker = gGatherMapMarker,
 		lastGather = 0,
 		teleport = GetClosestAetheryteToMapIDPos(Player.localmapid, markerPos),
-		isIdle = gGatherMapIdle == "1" and true or false,
+		isIdle = (gGatherMapIdle == "1") and true or false,
 	}
 	
 	list[key] = location

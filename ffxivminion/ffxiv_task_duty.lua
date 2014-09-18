@@ -61,7 +61,8 @@ c_followleaderduty.rrange = 8
 c_followleaderduty.leader = nil
 c_followleaderduty.leaderpos = nil
 function c_followleaderduty:evaluate()
-    if (IsDutyLeader() or not OnDutyMap() or ml_task_hub:CurrentTask().suppressFollow) then
+    --if (IsDutyLeader() or not OnDutyMap() or ml_task_hub:CurrentTask().suppressFollow) then
+	if (IsDutyLeader() or ml_task_hub:CurrentTask().suppressFollow) then
         return false
     end
 	
@@ -83,6 +84,7 @@ function c_followleaderduty:evaluate()
     return false
 end
 function e_followleaderduty:execute()
+	d("Executing follow leader. Leader:"..tostring(c_followleaderduty.leader.name))
     if ( c_followleaderduty.leader ~= nil) then
 		local leader = c_followleaderduty.leader
 		
@@ -117,7 +119,8 @@ c_assistleaderduty= inheritsFrom( ml_cause )
 e_assistleaderduty = inheritsFrom( ml_effect )
 c_assistleaderduty.targetid = nil
 function c_assistleaderduty:evaluate()
-    if (IsDutyLeader() or ml_task_hub:CurrentTask().suppressAssist or not OnDutyMap() or ActionList:IsCasting()) then
+    --if (IsDutyLeader() or ml_task_hub:CurrentTask().suppressAssist or not OnDutyMap() or ActionList:IsCasting()) then
+	if (IsDutyLeader() or ml_task_hub:CurrentTask().suppressAssist or ActionList:IsCasting()) then
         return false
     end
     
@@ -586,37 +589,14 @@ function ffxiv_task_duty.UpdateProfiles()
     end
     gProfile_listitems = profiles
     gProfile = found
-	ffxiv_task_duty.dutyInfo = persistence.load(ffxiv_task_duty.dutyPath..gProfile..".info")
-	if (ValidTable(ffxiv_task_duty.dutyInfo)) then
-		ffxiv_task_duty.mapID = ffxiv_task_duty.dutyInfo.MapID
-		if (ffxiv_task_duty.dutyInfo.Independent) then
-			ffxiv_task_duty.independentMode = true
-		else
-			ffxiv_task_duty.independentMode = false
-		end
-	end
-	if (file_exists(ffxiv_task_duty.dutyPath..gProfile..".lua")) then
-		d("loading"..ffxiv_task_duty.dutyPath..gProfile..".lua")
-		dofile(ffxiv_task_duty.dutyPath..gProfile..".lua")
-	end
-  ffxiv_task_duty.dutySet = false
+	ffxiv_task_duty.LoadProfile(gProfile)
 end
 
 function ffxiv_task_duty.GUIVarUpdate(Event, NewVals, OldVals)
     for k,v in pairs(NewVals) do
 		if (	k == "gProfile" and gBotMode == GetString("dutyMode")) then
-			ffxiv_task_duty.dutyInfo = persistence.load(ffxiv_task_duty.dutyPath..v..".info")
-			if (ValidTable(ffxiv_task_duty.dutyInfo)) then
-				ffxiv_task_duty.mapID = ffxiv_task_duty.dutyInfo.MapID
-				if (ffxiv_task_duty.dutyInfo.Independent) then
-					ffxiv_task_duty.independentMode = true
-				else
-					ffxiv_task_duty.independentMode = false
-				end
-			end
-			d(loadfile(ffxiv_task_duty.dutyPath..v..".lua"))
+			ffxiv_task_duty.LoadProfile(v)
 			Settings.FFXIVMINION["gLastDutyProfile"] = v
-			ffxiv_task_duty.dutySet = false
         elseif (k == "gResetDutyTimer" or
 				k == "gLootOption" or
 				k == "gUseTelecast")
@@ -625,6 +605,28 @@ function ffxiv_task_duty.GUIVarUpdate(Event, NewVals, OldVals)
         end
     end
     GUI_RefreshWindow(GetString("dutyMode"))
+end
+
+function ffxiv_task_duty.LoadProfile(strName)
+	ffxiv_task_duty.dutyInfo = persistence.load(ffxiv_task_duty.dutyPath..strName..".info")
+	if (ValidTable(ffxiv_task_duty.dutyInfo)) then
+		ffxiv_task_duty.mapID = ffxiv_task_duty.dutyInfo.MapID
+		if (ffxiv_task_duty.dutyInfo.Independent) then
+			ffxiv_task_duty.independentMode = true
+		else
+			ffxiv_task_duty.independentMode = false
+		end
+	else
+		d("The profile ["..strName.."] is structured incorrectly or does not exist. MapID of -1 will be assumed.")
+		ffxiv_task_duty.mapID = -1
+		ffxiv_task_duty.independentMode = false
+	end
+	if (file_exists(ffxiv_task_duty.dutyPath..strName..".lua")) then
+		d("loading "..ffxiv_task_duty.dutyPath..strName..".lua")
+		dofile(ffxiv_task_duty.dutyPath..strName..".lua")
+	end
+	ffxiv_task_duty.dutyCleared = false
+	ffxiv_task_duty.dutySet = false
 end
 
 function GetLeaderPos()
@@ -685,7 +687,7 @@ function InLimbo()
 end
 
 function OnDutyMap()
-	return (Player.localmapid == ffxiv_task_duty.mapID)
+	return (Player.localmapid == ffxiv_task_duty.mapID or ffxiv.task_duty.mapID == -1)
 end
 
 function PartyInCombat()

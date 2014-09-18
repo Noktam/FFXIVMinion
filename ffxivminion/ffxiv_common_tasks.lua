@@ -141,17 +141,17 @@ function ffxiv_task_movetopos.Create()
 end
 
 function ffxiv_task_movetopos:Init()	
-    local ke_mount = ml_element:create( "Mount", c_mount, e_mount, 20 )
+	local ke_teleportToPos = ml_element:create( "TeleportToPos", c_teleporttopos, e_teleporttopos, 25 )
+    self:add( ke_teleportToPos, self.process_elements)
+	
+	local ke_useNavInteraction = ml_element:create( "UseNavInteraction", c_usenavinteraction, e_usenavinteraction, 22 )
+    self:add( ke_useNavInteraction, self.process_elements)
+	
+	local ke_mount = ml_element:create( "Mount", c_mount, e_mount, 20 )
     self:add( ke_mount, self.process_elements)
     
     local ke_sprint = ml_element:create( "Sprint", c_sprint, e_sprint, 15 )
     self:add( ke_sprint, self.process_elements)
-	
-	local ke_teleportToPos = ml_element:create( "TeleportToPos", c_teleporttopos, e_teleporttopos, 15 )
-    self:add( ke_teleportToPos, self.process_elements)
-	
-	local ke_useNavInteraction = ml_element:create( "UseNavInteraction", c_usenavinteraction, e_usenavinteraction, 14 )
-    self:add( ke_useNavInteraction, self.process_elements)
     
     -- The parent needs to take care of checking and updating the position of this task!!	
     local ke_walkToPos = ml_element:create( "WalkToPos", c_walktopos, e_walktopos, 10 )
@@ -161,26 +161,9 @@ function ffxiv_task_movetopos:Init()
 end
 
 function ffxiv_task_movetopos:Process()
-	local parentTask = ml_task_hub:ThisTask():ParentTask()
+	local parentTask = self:ParentTask()
 	if(ValidTable(parentTask)) then
-		if (ml_task_hub:ThisTask():ParentTask().name == "LT_KILLTARGET") then
-			local target = Player:GetTarget()
-			
-			if 	( target and target.alive ) then
-				if (not target.los or not InCombatRange(target.id)) then
-					ml_task_hub:ThisTask().useFollowMovement = false
-				else
-					ml_task_hub:ThisTask().useFollowMovement = true
-				end
-				if (target.type < 3 and not Player.ismounted) then
-					SkillMgr.Cast( target )
-				end
-			else
-				ml_task_hub:ThisTask().useFollowMovement = false
-			end
-		end
-		
-		if (ml_task_hub:ThisTask():ParentTask().name == "LT_FATE" and TimeSince(ml_task_hub:ThisTask().obstacleTimer) > 10000) then
+		if (self:ParentTask().name == "LT_FATE" and TimeSince(self.obstacleTimer) > 10000) then
 			NavigationManager:ClearAvoidanceAreas()
 			local el = EntityList("attackable,aggressive,notincombat,maxdistance=100,fateid=0")
 	
@@ -190,15 +173,13 @@ function ffxiv_task_movetopos:Process()
 			local plvl = Player:GetSyncLevel() ~= 0 and Player:GetSyncLevel() or Player.level
 		  
 			for i,e in pairs(el) do
-				if (e.level >= (plvl - 3)) then
-					local pos = shallowcopy(e.pos)
-					pos.r = 15.0
-					obst[count] = pos
-					count = count + 1
-				end
+				local pos = shallowcopy(e.pos)
+				pos.r = 20.0
+				obst[count] = pos
+				count = count + 1
 			end
 			NavigationManager:SetAvoidanceAreas(obst)
-			ml_task_hub:ThisTask().obstacleTimer = Now()
+			self.obstacleTimer = Now()
 		end
 	end
 	
