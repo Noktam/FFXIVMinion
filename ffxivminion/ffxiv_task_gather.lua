@@ -479,10 +479,25 @@ function c_nextgatherlocation:evaluate()
 			--If we haven't yet completed gathering, but we started and there's no longer a node or list, assume we completed.
 			--If we haven't yet completed gathering, and the node time was 3 hours ago, it's gone by now, so move on.
 			local eTime = EorzeaTime()
-			local overdue = SubtractHours(eTime.hour,3)
+			local gatherableWindow = {
+				[SubtractHours(ffxiv_task_gather.location.hour,1)] = true,
+				[ffxiv_task_gather.location.hour] = true,
+				[AddHours(ffxiv_task_gather.location.hour,1)] = true,
+				[AddHours(ffxiv_task_gather.location.hour,2)] = true,
+			}
+			local overdue = true
+			for hour,_ in pairs(gatherableWindow) do
+				if (eTime.hour == hour) then
+					overdue = false
+				end 
+				if (not overdue) then
+					break
+				end
+			end
+			
 			--d("reset condition1 = "..tostring(ffxiv_task_gather.gatherStarted))
-			d("reset condition2 = "..tostring(overdue == ffxiv_task_gather.location.hour))
-			if (ffxiv_task_gather.gatherStarted or overdue == ffxiv_task_gather.location.hour) then
+			--d("reset condition2 = "..tostring(overdue))
+			if (ffxiv_task_gather.gatherStarted or overdue) then
 				ffxiv_task_gather.gatherStarted = false
 				ffxiv_task_gather.unspoiledGathered = true
 				ml_task_hub:CurrentTask().currentMarker = false
@@ -604,7 +619,6 @@ function c_nextgatherlocation:evaluate()
 		return true
 	end
 	
-	--d("returned default false")
 	return false
 end
 function e_nextgatherlocation:execute()
@@ -626,15 +640,23 @@ function e_nextgatherlocation:execute()
 			local newTask = ffxiv_task_teleport.Create()
 			newTask.mapID = location.mapid
 			newTask.mesh = location.mesh
+			newTask.task_complete_execute = function()
+				self.completed = true
+				ffxiv_task_gather.location = location
+				gGatherMapLocation = location.name
+				ffxiv_task_gather.unspoiledGathered = false
+				ffxiv_task_gather.gatherStarted = false
+				d("Arrived at location ["..location.name.."], using aetheryte teleport.")
+			end
 			ml_task_hub:CurrentTask():AddSubTask(newTask)
 		end
+	else
+		ffxiv_task_gather.location = location
+		gGatherMapLocation = location.name
+		ffxiv_task_gather.unspoiledGathered = false
+		ffxiv_task_gather.gatherStarted = false
+		d("Arrived at location ["..location.name.."], teleporting was not necessary.")
 	end
-	
-	ffxiv_task_gather.location = location
-	gGatherMapLocation = location.name
-	ffxiv_task_gather.unspoiledGathered = false
-	ffxiv_task_gather.gatherStarted = false
-	d("Changing locations to ["..location.name.."]")
 end
 
 c_gather = inheritsFrom( ml_cause )
@@ -916,44 +938,55 @@ function e_gatherwindow:execute()
 end
 
 function ffxiv_task_gather:Init()
-    --init ProcessOverWatch cnes
+	--[[START SHARED OVERWATCH CNE SECTION]]--
     local ke_dead = ml_element:create( "Dead", c_dead, e_dead, 25 )
     self:add( ke_dead, self.overwatch_elements)
+	
+	local ke_flee = ml_element:create( "Flee", c_flee, e_flee, 24 )
+    self:add( ke_flee, self.overwatch_elements)
     
     local ke_stealth = ml_element:create( "Stealth", c_stealth, e_stealth, 23 )
     self:add( ke_stealth, self.overwatch_elements)
 	
 	local ke_gatherWindow = ml_element:create( "GatherWindow", c_gatherwindow, e_gatherwindow, 20)
 	self:add( ke_gatherWindow, self.overwatch_elements)
+	--[[END SHARED OVERWATCH CNE SECTION]]--
 	
+	--[[START UNSPOILED OVERWATCH CNE SECTION]]--
 	local ke_findunspoiledNode = ml_element:create( "FindUnspoiledNode", c_findunspoilednode, e_findunspoilednode, 12 )
     self:add(ke_findunspoiledNode, self.overwatch_elements)
+	--[[END UNSPOILED OVERWATCH CNE SECTION]]--
 	
-    --init Process cnes	
-    local ke_returnToMarker = ml_element:create( "ReturnToMarker", c_returntomarker, e_returntomarker, 25 )
-    self:add( ke_returnToMarker, self.process_elements)
-	
+	--[[START UNSPOILED PROCESS CNE SECTION]]--
 	local ke_nextUnspoiledMarker = ml_element:create( "NextUnspoiledMarker", c_nextunspoiledmarker, e_nextunspoiledmarker, 21 )
     self:add( ke_nextUnspoiledMarker, self.process_elements)
-    
-    local ke_nextMarker = ml_element:create( "NextMarker", c_nextgathermarker, e_nextgathermarker, 20 )
+	
+	local ke_moveToUnspoiledMarker = ml_element:create( "MoveToUnspoiledMarker", c_movetounspoiledmarker, e_movetounspoiledmarker, 11 )
+    self:add( ke_moveToUnspoiledMarker, self.process_elements)
+	
+	local ke_nextLocation = ml_element:create( "NextLocation", c_nextgatherlocation, e_nextgatherlocation, 4 )
+    self:add(ke_nextLocation, self.process_elements)
+	--[[END UNSPOILED PROCESS CNE SECTION]]--	
+	
+	--[[START REGULAR PROCESS CNE SECTION]]--
+	local ke_returnToMarker = ml_element:create( "ReturnToMarker", c_returntomarker, e_returntomarker, 25 )
+    self:add( ke_returnToMarker, self.process_elements)
+	
+	local ke_nextMarker = ml_element:create( "NextMarker", c_nextgathermarker, e_nextgathermarker, 20 )
     self:add( ke_nextMarker, self.process_elements)
 	
     local ke_findGatherable = ml_element:create( "FindGatherable", c_findgatherable, e_findgatherable, 15 )
     self:add(ke_findGatherable, self.process_elements)
 	
-	local ke_moveToUnspoiledMarker = ml_element:create( "MoveToUnspoiledMarker", c_movetounspoiledmarker, e_movetounspoiledmarker, 11 )
-    self:add( ke_moveToUnspoiledMarker, self.process_elements)
-	
     local ke_moveToGatherable = ml_element:create( "MoveToGatherable", c_movetogatherable, e_movetogatherable, 10 )
     self:add( ke_moveToGatherable, self.process_elements)
+	--[[END REGULAR PROCESS CNE SECTION]]--
     
+	--[[START SHARED PROCESS CNE SECTION]]--
     local ke_gather = ml_element:create( "Gather", c_gather, e_gather, 5 )
     self:add(ke_gather, self.process_elements)
+	--[[END SHARED PROCESS CNE SECTION]]--
 	
-	local ke_nextLocation = ml_element:create( "NextLocation", c_nextgatherlocation, e_nextgatherlocation, 4 )
-    self:add(ke_nextLocation, self.process_elements)
-    
     self:AddTaskCheckCEs()
 end
 

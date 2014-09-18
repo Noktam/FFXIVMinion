@@ -390,21 +390,23 @@ function ffxiv_task_fate:Init()
     
     local ke_moveToFate = ml_element:create( "MoveToFate", c_movetofate, e_movetofate, 5 )
     self:add( ke_moveToFate, self.process_elements)
-	
-	--local ke_KillAggroTarget = ml_element:create( "KillAggroTarget", c_killaggrotarget, e_killaggrotarget, 2 )
-	--self:add(ke_KillAggroTarget, self.process_elements)
     
     self:AddOverwatchTaskCheckCEs()
 end
 
 function ffxiv_task_fate:task_complete_eval()
     local fate = GetFateByID(ml_task_hub:CurrentTask().fateid)
+	if (not ValidTable(fate)) then
+		return true
+	end
+	--[[
     if (fate ~= nil and TableSize(fate) > 0) then
         return fate.completion > 99
     elseif (fate == nil) then
         return true
     end
-    
+    --]]
+	
     return false
 end
 
@@ -412,6 +414,7 @@ function ffxiv_task_fate:task_complete_execute()
 	Player:Stop()
 	ffxiv_task_grind.inFate = false
 	self:Terminate()
+	self:ParentTask():SetDelay(2000)
 end
 
 

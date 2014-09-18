@@ -559,6 +559,8 @@ strings =
 		autoEquip					 	= "Auto-Equip",
 		idlePulseCount					= "Idle Count",
 		taskDelay						= "Task Delay (ms)",
+		huntLocationEditor				= "Hunt Location Editor",
+		monsterName						= "Monster Name",
     },                                  
     ["cn"] =                            
     {                               
@@ -1153,6 +1155,8 @@ strings =
 		autoEquip					 	= "自动换装",
 		idlePulseCount					= "Idle Count",
 		taskDelay						= "Task Delay (ms)",
+		huntLocationEditor				= "Hunt Location Editor",
+		monsterName						= "Monster Name",
 	},
     ["jp"] =
     {
@@ -1178,8 +1182,8 @@ strings =
 		checkChat						= "チャット警告",
 		randomfarmspot 					= "ランダム採集",
 		disabledrawing 					= "Disable Rendering",
-		killaggrononfateenemies 					= "Kill attacking None-Fate Enemies",
-		avoidAOE						 = "Avoid AOE",
+		killaggrononfateenemies 		= "Kill attacking None-Fate Enemies",
+		avoidAOE						= "Avoid AOE",
         -- mesher.lua
         meshManager                     = "３Dメッシュ管理", 	
 		activated                       = "実行中",
@@ -1700,6 +1704,8 @@ strings =
 		autoEquip					 	= "Auto-Equip",
 		idlePulseCount					= "Idle Count",
 		taskDelay						= "Task Delay (ms)",
+		huntLocationEditor				= "Hunt Location Editor",
+		monsterName						= "Monster Name",
 	},   
     ["de"] =
     {
@@ -2248,6 +2254,8 @@ strings =
 		autoEquip					 	= "Auto-Equip",
 		idlePulseCount					= "Idle Count",
 		taskDelay						= "Task Delay (ms)",
+		huntLocationEditor				= "Hunt Location Editor",
+		monsterName						= "Monster Name",
 	},     
     ["fr"] =
     {
@@ -2795,6 +2803,8 @@ strings =
 		autoEquip					 	= "Auto-Equip",
 		idlePulseCount					= "Idle Count",
 		taskDelay						= "Task Delay (ms)",
+		huntLocationEditor				= "Hunt Location Editor",
+		monsterName						= "Monster Name",
 	},       
     ["ru"] =
     {
@@ -3342,6 +3352,8 @@ strings =
 		autoEquip					 	= "Auto-Equip",
 		idlePulseCount					= "Idle Count",
 		taskDelay						= "Task Delay (ms)",
+		huntLocationEditor				= "Hunt Location Editor",
+		monsterName						= "Monster Name",
 	},    	
 
 }
