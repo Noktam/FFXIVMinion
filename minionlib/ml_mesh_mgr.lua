@@ -707,7 +707,7 @@ function ml_mesh_mgr.GUIVarUpdate(Event, NewVals, OldVals)
 		elseif( k == "gnewmeshname" ) then
 			ml_mesh_mgr.currentMesh.Name = v
 		elseif( k == "gNoMeshLoad" ) then
-			Settings.FFXIVMINION[tostring(k)] = v
+			Settings.minionlib[tostring(k)] = v
 		end
 	end
 end
@@ -810,15 +810,13 @@ function ml_mesh_mgr.SetupNavNodes()
 		local node = ml_node:Create()
 		if (ValidTable(node)) then
 			node.id = id
-			for nid, posTable in pairs(neighbors) do
-				node:AddNeighbor(nid, posTable)
+			for nid, neighbor in pairs(neighbors) do
+				node:AddNeighbor(nid, neighbor)
 			end
 			ml_nav_manager.AddNode(node)
 		end
 	end
 end
-
-
 
 -- old compatibilityshit, remove that at some point in the near future!
 function ml_mesh_mgr.ConvertOldMarkerInfoFileToFancyNewOne(meshname)

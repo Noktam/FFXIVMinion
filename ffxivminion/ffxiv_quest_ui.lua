@@ -483,6 +483,7 @@ function QM.LoadProfile()
 		else
 			QM.Encounters = {}
 		end
+		QM.RefreshEncounters()
 	else
 		info = persistence.load(QM.QuestPath..qProfileName..".info")
 		if (ValidTable(info) and ValidTable(info.quests)) then
@@ -500,8 +501,12 @@ function QM.CreateProfile()
 	
 	if (qProfileType == "Duty") then
 		persistence.store(QM.DutyPath..qProfileNew..".info",starter)
+		QM.Encounters = {}
+		QM.RefreshEncounters()
 	else
 		persistence.store(QM.QuestPath..qProfileNew..".info",starter)
+		QM.Quests = {}
+		QM.RefreshQuests()
 	end
 	
 	QM.LoadTypeOptions()

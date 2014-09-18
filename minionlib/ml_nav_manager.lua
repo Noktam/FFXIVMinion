@@ -16,13 +16,13 @@ function ml_nav_manager.GetNextPathPos(currPos, currID, destID)
     end
 	
 	if (ValidTable(ml_nav_manager.currPath)) then
-
 		ml_nav_manager.currID = currID
 		ml_nav_manager.destID = destID
 		
 		for index, node in pairsByKeys(ml_nav_manager.currPath) do
 			if (node.id == currID) then
 				local nextNode = ml_nav_manager.currPath[index + 1]
+				
 				if (ValidTable(nextNode)) then
 					local pos = node:GetClosestNeighborPos(currPos,nextNode.id)
 					if (ValidTable(pos)) then
@@ -43,7 +43,6 @@ function ml_nav_manager.AddNode(node)
     end
 end
 
-
 -- Internal functions
 function ml_nav_manager.GetNode(id)
     return ml_nav_manager.nodes[id]
@@ -53,7 +52,7 @@ function ml_nav_manager.SetNavPath(currID, destID)
     local currNode = ml_nav_manager.GetNode(currID)
     local destNode = ml_nav_manager.GetNode(destID)
     
-	if(ValidTable(currNode) and ValidTable(destNode)) then
+	if(ValidTable(currNode) and ValidTable(destNode)) then	
 		ml_nav_manager.currPath = ml_nav_manager.GetPath(currNode, destNode)
 	else
 		d("SetNavPath - Invalid node IDs")
@@ -61,6 +60,7 @@ function ml_nav_manager.SetNavPath(currID, destID)
 end
 
 function ml_nav_manager.GetPath(source, dest)
+
     local nodes = ml_nav_manager.nodes
 	--Create a closed and open set
 	local open = {}
@@ -69,16 +69,16 @@ function ml_nav_manager.GetPath(source, dest)
 	local data = {}
 	for id, node in pairs(nodes) do
 		data[id] = {
-			distance = math.huge,
+			distance = 1000,
 			previous = nil
 		}
 		
 		open[id] = true
 	end
- 
+
 	--The source node has a distance of 0, and sources in the open set
 	data[source.id].distance = 0
- 
+	
 	while TableSize(open) > 0 do
 		--pick the nearest open node
 		local best = nil
@@ -89,7 +89,9 @@ function ml_nav_manager.GetPath(source, dest)
 		end
  
 		--at the dest - stop looking
-		if best == dest then break end
+		if best == dest then 
+			break 
+		end
  
 		--all nodes traversed - dest not found! No connection between source and dest
 		if not best then return end
@@ -116,6 +118,6 @@ function ml_nav_manager.GetPath(source, dest)
 		table.insert(path, 1, at)
 		at = data[at.id].previous
 	end
- 
+	
 	return path
 end

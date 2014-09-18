@@ -214,7 +214,7 @@ function ffxivminion.HandleInit()
 		[strings[gCurrentLanguage].dutyMode] 	= ffxiv_task_duty,
 		[strings[gCurrentLanguage].questMode]	= ffxiv_task_quest,
 		[strings[gCurrentLanguage].huntMode]	= ffxiv_task_hunt,
-		--["NavTest"]								= ffxiv_task_test,
+		["NavTest"]								= ffxiv_task_test,
 	}
 	
 	if ( not ffxivminion.Windows ) then
@@ -273,9 +273,6 @@ function ffxivminion.HandleInit()
     if ( Settings.FFXIVMINION.gDoUnstuck == nil) then
         Settings.FFXIVMINION.gDoUnstuck = "0"
     end
-	if ( Settings.FFXIVMINION.gUseHQMats == nil) then
-		Settings.FFXIVMINION.gUseHQMats = "0"
-	end
     if ( Settings.FFXIVMINION.gClickToTeleport == nil) then
 		Settings.FFXIVMINION.gClickToTeleport = "0"
 	end
@@ -309,6 +306,10 @@ function ffxivminion.HandleInit()
 	if ( Settings.FFXIVMINION.gAvoidAOE == nil) then
 		Settings.FFXIVMINION.gAvoidAOE = "0" 
 	end
+	if ( Settings.FFXIVMINION.gAutoPotion == nil) then
+		Settings.FFXIVMINION.gAutoPotion = "0" 
+	end
+	Settings.FFXIVMINION.gUseAirships = Settings.FFXIVMINION.gUseAirships or "0"
 	
 	local winName = ffxivminion.Windows.Main.Name
 	--GUI_NewButton(ffxivminion.Windows.Main.Name, GetString("advancedSettings"), "ToggleAdvancedSettings")
@@ -330,8 +331,9 @@ function ffxivminion.HandleInit()
 	GUI_NewField(winName,strings[gCurrentLanguage].taskDelay,"gTaskDelay",group )
 	
 	local group = GetString("generalSettings")
-    GUI_NewCheckbox(winName,strings[gCurrentLanguage].autoStartBot,"gAutoStart",group)
+    GUI_NewCheckbox(winName,strings[gCurrentLanguage].autoStartBot,"gAutoStart",group )
 	GUI_NewCheckbox(winName,strings[gCurrentLanguage].useAetherytes,"gUseAetherytes",group )
+	GUI_NewCheckbox(winName,"Use Airships","gUseAirships",group )
 	GUI_NewCheckbox(winName,strings[gCurrentLanguage].useMount,"gUseMount",group )
 	GUI_NewComboBox(winName,strings[gCurrentLanguage].mount, "gMount",group,GetMounts())
     GUI_NewNumeric(winName,strings[gCurrentLanguage].mountDist,"gMountDist",group )
@@ -343,10 +345,12 @@ function ffxivminion.HandleInit()
 	gChocoStance_listitems = strings[gCurrentLanguage].stFree..","..strings[gCurrentLanguage].stDefender..","..strings[gCurrentLanguage].stAttacker..","..strings[gCurrentLanguage].stHealer..","..strings[gCurrentLanguage].stFollow
 	GUI_NewComboBox(winName,"Food", 	"gFood", group, "None")
 	GUI_NewComboBox(winName,"HQ Food", 	"gFoodHQ", group, "None")
+	GUI_NewComboBox(winName,"HQ Food", 	"gFoodHQ", group, "None")
 	GUI_NewCheckbox(winName,strings[gCurrentLanguage].avoidAOE, "gAvoidAOE",group)
 	GUI_NewCheckbox(winName,strings[gCurrentLanguage].randomPaths,"gRandomPaths",group )
 	GUI_NewCheckbox(winName,strings[gCurrentLanguage].doUnstuck,"gDoUnstuck",group )
-	GUI_NewCheckbox(winName,strings[gCurrentLanguage].useHQMats,"gUseHQMats",group )
+	GUI_NewComboBox(winName,"Auto-Potion","gAutoPotion", group,"None")
+	
 	GUI_NewButton(winName, GetString("multiManager"), "MultiBotManager.toggle", group)
 	GUI_NewButton(winName,"Cast Prevention","CastPrevention.toggle",group)
 	GUI_NewButton(winName,"Shortcut Manager","ShortcutManager.toggle",group)
@@ -376,11 +380,11 @@ function ffxivminion.HandleInit()
     gSkipCutscene = Settings.FFXIVMINION.gSkipCutscene
     gSkipDialogue = Settings.FFXIVMINION.gSkipDialogue
 	gAvoidAOE = Settings.FFXIVMINION.gAvoidAOE
-    gDoUnstuck = Settings.FFXIVMINION.gDoUnstuck
-    gUseHQMats = Settings.FFXIVMINION.gUseHQMats	
+    gDoUnstuck = Settings.FFXIVMINION.gDoUnstuck	
     gClickToTeleport = Settings.FFXIVMINION.gClickToTeleport
     gClickToTravel = Settings.FFXIVMINION.gClickToTravel
 	gUseAetherytes = Settings.FFXIVMINION.gUseAetherytes
+	gUseAirships = Settings.FFXIVMINION.gUseAirships
 	gChoco = Settings.FFXIVMINION.gChoco
 	gChocoStance = Settings.FFXIVMINION.gChocoStance
 	gMount = Settings.FFXIVMINION.gMount
@@ -390,6 +394,7 @@ function ffxivminion.HandleInit()
 	gFoodHQ = Settings.FFXIVMINION.gFoodHQ
 	gFood = Settings.FFXIVMINION.gFood
 	gDevDebug = Settings.FFXIVMINION.gDevDebug
+	gAutoPotion = Settings.FFXIVMINION.gAutoPotion
 	
 	if (not ml_global_information.TaskUIInit) then
 		-- load task UIs
@@ -570,6 +575,7 @@ function ffxivminion.GUIVarUpdate(Event, NewVals, OldVals)
 			k == "gQuestHelpers" or
 			k == "gRepair" or 
 			k == "gUseAetherytes" or
+			k == "gUseAirships" or
 			k == "gFood" or
 			k == "gFoodHQ" or 
 			k == "gAvoidAOE" or

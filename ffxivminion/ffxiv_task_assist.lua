@@ -21,23 +21,23 @@ end
 
 function ffxiv_task_assist:Init()
     --init Process() cnes
-	local ke_pressConfirm = ml_element:create( "ConfirmDuty", c_pressconfirm, e_pressconfirm, 25 )
-    self:add(ke_pressConfirm, self.process_elements)
+	--local ke_pressConfirm = ml_element:create( "ConfirmDuty", c_pressconfirm, e_pressconfirm, 25 )
+    --self:add(ke_pressConfirm, self.process_elements)
 	
-	local ke_acceptQuest = ml_element:create( "AcceptQuest", c_acceptquest, e_acceptquest, 23 )
-    self:add(ke_acceptQuest, self.process_elements)
+	--local ke_acceptQuest = ml_element:create( "AcceptQuest", c_acceptquest, e_acceptquest, 23 )
+    --self:add(ke_acceptQuest, self.process_elements)
 	
-	local ke_handoverQuest = ml_element:create( "HandoverQuestItem", c_handoverquest, e_handoverquest, 23 )
-    self:add(ke_handoverQuest, self.process_elements)
+	--local ke_handoverQuest = ml_element:create( "HandoverQuestItem", c_handoverquest, e_handoverquest, 23 )
+    --self:add(ke_handoverQuest, self.process_elements)
 	
-	local ke_completeQuest = ml_element:create( "CompleteQuest", c_completequest, e_completequest, 23 )
-    self:add(ke_completeQuest, self.process_elements)
+	--local ke_completeQuest = ml_element:create( "CompleteQuest", c_completequest, e_completequest, 23 )
+    --self:add(ke_completeQuest, self.process_elements)
 	
-	local ke_yesnoQuest = ml_element:create( "QuestYesNo", c_questyesno, e_questyesno, 23 )
-    self:add(ke_yesnoQuest, self.process_elements)
+	--local ke_yesnoQuest = ml_element:create( "QuestYesNo", c_questyesno, e_questyesno, 23 )
+    --self:add(ke_yesnoQuest, self.process_elements)
 	
-	local ke_avoid = ml_element:create( "Avoid", c_avoid, e_avoid, 20)
-	self:add(ke_avoid, self.process_elements)
+	--local ke_avoid = ml_element:create( "Avoid", c_avoid, e_avoid, 20)
+	--self:add(ke_avoid, self.process_elements)
 	
 	local ke_companion = ml_element:create( "Companion", c_companion, e_companion, 18 )
     self:add( ke_companion, self.process_elements)
@@ -64,9 +64,10 @@ function ffxiv_task_assist:GetHealingTarget()
 end
 
 function ffxiv_task_assist:GetAttackTarget()
+	local maxDistance = (ml_global_information.AttackRange < 5 ) and 15 or ml_global_information.AttackRange
     local target = nil
     if ( gAssistMode == "LowestHealth") then	
-        local el = EntityList("lowesthealth,alive,attackable,maxdistance="..tostring(ml_global_information.AttackRange))
+        local el = EntityList("lowesthealth,alive,attackable,maxdistance="..tostring(maxDistance))
         if ( el ) then
             local i,e = next(el)
             if (i~=nil and e~=nil) then
@@ -75,7 +76,7 @@ function ffxiv_task_assist:GetAttackTarget()
         end	
     
     elseif ( gAssistMode == "Closest" ) then	
-        local el = EntityList("shortestpath,alive,attackable,maxdistance="..tostring(ml_global_information.AttackRange))
+        local el = EntityList("nearest,alive,attackable,maxdistance="..tostring(maxDistance))
         if ( el ) then
             local i,e = next(el)
             if (i~=nil and e~=nil) then
@@ -110,16 +111,14 @@ function ffxiv_task_assist:Process()
         
         if ( newTarget ~= nil and (not target or newTarget.id ~= target.id)) then
             target = newTarget
+			Player:SetTarget(target.id)  
         end
     end	
 
-    if 	( target and target.alive and (target.attackable or target.chartype==2 or target.chartype==5 or target.chartype==4) and target.distance <= 30 ) then
+    if 	( target and target.alive and target.los and (target.attackable or target.chartype==2 or target.chartype==5 or target.chartype==4) and target.distance <= 30 ) then
         local pos = target.pos
-        
-        --Player:SetFacing(pos.x,pos.y,pos.z)
-        Player:SetTarget(ml_task_hub:CurrentTask().targetid)      			
+            			
         SkillMgr.Cast( target )
-		
     end
 	
 	if ( target == nil and not ActionList:IsCasting()) then
@@ -154,9 +153,9 @@ function ffxiv_task_assist.UIInit()
 	if (Settings.FFXIVMINION.gConfirmDuty == nil) then
         Settings.FFXIVMINION.gConfirmDuty = "0"
     end
-	if (Settings.FFXIVMINION.gQuestHelpers == nil) then
-		Settings.FFXIVMINION.gQuestHelpers = "0"
-	end
+	--if (Settings.FFXIVMINION.gQuestHelpers == nil) then
+		--Settings.FFXIVMINION.gQuestHelpers = "0"
+	--end
 	if (Settings.FFXIVMINION.gPrimaryFilter == nil) then
         Settings.FFXIVMINION.gPrimaryFilter = "0"
     end
@@ -181,7 +180,7 @@ function ffxiv_task_assist.UIInit()
     GUI_NewComboBox(winName,strings[gCurrentLanguage].assistPriority,"gAssistPriority",group,"Damage,Healer")
     GUI_NewCheckbox(winName,strings[gCurrentLanguage].startCombat,"gStartCombat",group)
     GUI_NewCheckbox(winName,strings[gCurrentLanguage].confirmDuty,"gConfirmDuty",group) 
-    GUI_NewCheckbox(winName,strings[gCurrentLanguage].questHelpers,"gQuestHelpers",group)
+    --GUI_NewCheckbox(winName,strings[gCurrentLanguage].questHelpers,"gQuestHelpers",group)
 	
 	GUI_UnFoldGroup(winName,GetString("status"))
 	ffxivminion.SizeWindow(winName)
@@ -191,7 +190,7 @@ function ffxiv_task_assist.UIInit()
     gAssistPriority = Settings.FFXIVMINION.gAssistPriority
 	gStartCombat = Settings.FFXIVMINION.gStartCombat
 	gConfirmDuty = Settings.FFXIVMINION.gConfirmDuty
-	gQuestHelpers = Settings.FFXIVMINION.gQuestHelpers
+	--gQuestHelpers = Settings.FFXIVMINION.gQuestHelpers
 	gPrimaryFilter = Settings.FFXIVMINION.gPrimaryFilter
 	gSecondaryFilter = Settings.FFXIVMINION.gSecondaryFilter
 	
@@ -204,7 +203,7 @@ function ffxiv_task_assist.GUIVarUpdate(Event, NewVals, OldVals)
 				k == "gAssistPriority" or
 				k == "gStartCombat" or
 				k == "gConfirmDuty" or
-				k == "gQuestHelpers" or
+				--k == "gQuestHelpers" or
 				k == "gPrimaryFilter" or
 				k == "gSecondaryFilter" ) then
             Settings.FFXIVMINION[tostring(k)] = v

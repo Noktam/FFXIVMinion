@@ -329,6 +329,7 @@ function Dev.ModuleInit()
 	QIindex = 0
 	
 	-- General Functions
+	GUI_NewField("Dev","Eorzea Time","general_gametime","General Functions")
 	GUI_NewField("Dev","Text Command","general_sendtextcommand","General Functions")
 	GUI_NewButton("Dev","Send Text Command","Dev.SendTextCommand","General Functions")
 	GUI_NewButton("Dev","Repair","Dev.Repair", "General Functions")
@@ -1056,7 +1057,7 @@ function Dev.UpdateWindow()
 	end
 	
 	--Duty/PVP
-	
+	general_gametime = tostring(EorzeaTime().hour)..":"..tostring(EorzeaTime().minute)
 	duty_selectwindow = tostring(ControlVisible("ContentsFinder"))
 	duty_confirmenterwindow = tostring(ControlVisible("ContentsFinderConfirm"))
 	duty_yesnowindow = tostring(ControlVisible("SelectYesno"))

@@ -44,6 +44,7 @@ function c_selectitem:evaluate()
 	
     local synth = Crafting:SynthInfo()
 	if ( not synth and Crafting:IsCraftingLogOpen()) then
+		Repair()
 		d("Can craft selected Item? : "..tostring(Crafting:CanCraftSelectedItem()))
 		if ( Crafting:CanCraftSelectedItem() ) then
 			return true
@@ -142,6 +143,9 @@ function ffxiv_task_craft.UIInit()
 	if ( Settings.FFXIVMINION.gCraftMinCP == nil ) then
         Settings.FFXIVMINION.gCraftMinCP = 0
     end
+	if ( Settings.FFXIVMINION.gUseHQMats == nil) then
+		Settings.FFXIVMINION.gUseHQMats = "0"
+	end
 	
 	local winName = GetString("craftMode")
 	GUI_NewButton(winName, ml_global_information.BtnStart.Name , ml_global_information.BtnStart.Event)
@@ -151,14 +155,17 @@ function ffxiv_task_craft.UIInit()
 	GUI_NewComboBox(winName,strings[gCurrentLanguage].botMode,"gBotMode",group,"None")
 	GUI_NewComboBox(winName,strings[gCurrentLanguage].skillProfile,"gSMprofile",group,ffxivminion.Strings.SKMProfiles())
     GUI_NewCheckbox(winName,strings[gCurrentLanguage].botEnabled,"gBotRunning",group)
+	
 	local group = GetString("settings")
     GUI_NewField(winName,"Minimum CP","gCraftMinCP",group)
+	GUI_NewCheckbox(winName,strings[gCurrentLanguage].useHQMats,"gUseHQMats",group )
 	
 	GUI_UnFoldGroup(winName,GetString("status"))
 	ffxivminion.SizeWindow(winName)
 	GUI_WindowVisible(winName, false)
 	
 	gCraftMinCP = Settings.FFXIVMINION.gCraftMinCP
+	gUseHQMats = Settings.FFXIVMINION.gUseHQMats
     
     RegisterEventHandler("GUI.Update",ffxiv_task_craft.GUIVarUpdate)
 end

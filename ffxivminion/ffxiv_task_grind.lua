@@ -126,17 +126,17 @@ function ffxiv_task_grind:Init()
     local ke_dead = ml_element:create( "Dead", c_dead, e_dead, 25 )
     self:add(ke_dead, self.overwatch_elements)
 	
+	local ke_flee = ml_element:create( "Flee", c_flee, e_flee, 24 )
+    self:add(ke_flee, self.overwatch_elements)
+    
+    local ke_rest = ml_element:create( "Rest", c_rest, e_rest, 23 )
+    self:add(ke_rest, self.overwatch_elements)
+	
 	local ke_atma = ml_element:create( "NextAtma", c_nextatma, e_nextatma, 20 )
     self:add(ke_atma, self.overwatch_elements)
 	
 	--local ke_avoid = ml_element:create( "Avoid", c_avoid, e_avoid, 19)
 	--self:add(ke_avoid, self.overwatch_elements)
-    
-    local ke_flee = ml_element:create( "Flee", c_flee, e_flee, 15 )
-    self:add(ke_flee, self.overwatch_elements)
-    
-    local ke_rest = ml_element:create( "Rest", c_rest, e_rest, 14 )
-    self:add(ke_rest, self.overwatch_elements)
     
     local ke_addFate = ml_element:create( "AddFate", c_add_fate, e_add_fate, 10 )
     self:add(ke_addFate, self.overwatch_elements)
