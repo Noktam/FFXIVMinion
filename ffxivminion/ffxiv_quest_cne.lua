@@ -281,11 +281,8 @@ function e_questcomplete:execute()
 		Quest:CompleteQuestReward()
 	end
 	
-	if(ml_task_hub:CurrentTask().params["equip"]) then
-		--delay the task a bit so that the inventory will update
-		ml_task_hub:CurrentTask():SetDelay(1500)
-	end
 	
+	ml_task_hub:CurrentTask():SetDelay(2500)
 	ml_task_hub:CurrentTask().stepCompleted = true
 	ml_task_hub:CurrentTask():ParentTask().questCompleted = true
 end
@@ -500,7 +497,7 @@ end
 c_indialog = inheritsFrom( ml_cause )
 e_indialog = inheritsFrom( ml_effect )
 function c_indialog:evaluate()
-	return Quest:IsInDialog() and not ControlVisible("SelectIconString") and not ControlVisible("SelectString")
+	return Quest:IsInDialog() and not ControlVisible("SelectIconString") and not ControlVisible("SelectString") and not Quest:IsRequestDialogOpen()
 end
 function e_indialog:execute()
 	--do nothing, this is a blocking cne to avoid spamming
@@ -946,7 +943,7 @@ function c_questkillaggrotarget:evaluate()
 	if (ValidTable(el)) then
 		local id, target = next(el)
 		if (ValidTable(target)) then
-			if(target.hp.current > 0 and target.id ~= nil and target.id ~= 0 and (target.level <= (Player.level + 3))) then
+			if(target.hp.current > 0 and target.id ~= nil and target.id ~= 0 and target.fateid == 0 and (target.level <= (Player.level + 3))) then
 				--d("KillAggroTarget True - aggressive")
 				c_questkillaggrotarget.targetid = target.id
 				return true
