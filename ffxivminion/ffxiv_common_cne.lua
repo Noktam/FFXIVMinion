@@ -285,7 +285,7 @@ c_nextatma = inheritsFrom( ml_cause )
 e_nextatma = inheritsFrom( ml_effect )
 e_nextatma.atma = nil
 function c_nextatma:evaluate()	
-	if (gAtma == "0" or Player.incombat or ffxiv_task_grind.inFate or IsLoading() or ml_task_hub:CurrentTask().name == "LT_TELEPORT") then
+	if (gAtma == "0" or Player.incombat or ffxiv_task_grind.inFate or IsLoading()) then
 		return false
 	end
 	
@@ -318,11 +318,7 @@ function c_nextatma:evaluate()
 			end
 		
 			if (not haveBest) then
-				if (atma.map == map) then
-					--We're already on the map with the most appropriate atma and we don't have it
-					return false
-				else
-					--We need the best atma, and it's not on this map, so move to it.
+				if (atma.map ~= map) then
 					e_nextatma.atma = atma
 					return true
 				end
@@ -393,14 +389,14 @@ function e_nextatma:execute()
 		return
 	end
 	
-	if (ml_task_hub:CurrentTask().name ~= "LT_TELEPORT" and ActionIsReady(5)) then
+	if (ActionIsReady(5)) then
 		Player:Teleport(atma.tele)
 		
 		local newTask = ffxiv_task_teleport.Create()
 		d("Changing to new location for "..tostring(atma.name).." atma.")
 		newTask.mapID = atma.map
 		newTask.mesh = atma.mesh
-		ml_task_hub:CurrentTask():AddSubTask(newTask)
+		ml_task_hub:Add(newTask, IMMEDIATE_GOAL, TP_IMMEDIATE)
 	end
 end
 
@@ -701,7 +697,7 @@ function c_teleporttomap:evaluate()
 	end
 	
 	local teleport = ActionList:Get(5)
-	if (not teleport or not teleport.isready) then
+	if (not teleport) then
 		return false
 	end
 	
@@ -758,12 +754,12 @@ function e_teleporttomap:execute()
 		return
 	end
 	
-	if (ml_task_hub:CurrentTask().name ~= "LT_TELEPORT" and ActionIsReady(5)) then
+	if (ActionIsReady(5)) then
 		Player:Teleport(e_teleporttomap.aethid)
 							
 		local newTask = ffxiv_task_teleport.Create()
 		newTask.mapID = e_teleporttomap.destMap
-		ml_task_hub:CurrentTask():AddSubTask(newTask)
+		ml_task_hub:Add(newTask, IMMEDIATE_GOAL, TP_IMMEDIATE)
 	end
 end
 

@@ -484,7 +484,8 @@ end
 
 function ffxiv_quest_dutykill:task_complete_eval()
 	local mapid = self.params["mapid"]
-	return Player.localmapid ~= mapid and ffxiv_task_quest.QuestObjectiveChanged()
+	local disableMapCheck = self.params["disablemapcheck"] or false
+	return (Player.localmapid ~= mapid or disableMapCheck) and ffxiv_task_quest.QuestObjectiveChanged()
 end
 
 function ffxiv_quest_dutykill:task_fail_eval()
@@ -502,7 +503,6 @@ end
 
 ffxiv_quest_nav = inheritsFrom(ml_task)
 ffxiv_quest_nav.name = "QUEST_NAVIGATE"
-
 function ffxiv_quest_nav.Create()
     local newinst = inheritsFrom(ffxiv_quest_nav)
     

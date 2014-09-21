@@ -275,14 +275,14 @@ function e_questcomplete:execute()
 		else
 			rewardslot = tonumber(reward)
 		end
-		--d("Selecting reward from slot "..tostring(rewardslot))
+		d("Selecting reward from slot "..tostring(rewardslot))
 		Quest:CompleteQuestReward(rewardslot)
 	else
+		d("Selecting reward from no slot.")
 		Quest:CompleteQuestReward()
 	end
 	
-	
-	ml_task_hub:CurrentTask():SetDelay(2500)
+	ml_task_hub:CurrentTask():SetDelay(2000)
 	ml_task_hub:CurrentTask().stepCompleted = true
 	ml_task_hub:CurrentTask():ParentTask().questCompleted = true
 end
@@ -410,6 +410,15 @@ end
 function e_questkill:execute()
 	local newTask = ffxiv_task_grindCombat.Create()
 	newTask.targetid = e_questkill.id
+	newTask.task_complete_eval = 
+		function()	
+			local target = EntityList:Get(ml_task_hub:ThisTask().targetid)
+			if 	(target and not target.attackable) or (target and not target.alive)	then
+				return true
+			end
+			
+			return false
+		end
 	newTask.task_complete_execute = 
 		function()
 			ffxiv_task_quest.killTaskCompleted = true
@@ -419,8 +428,8 @@ function e_questkill:execute()
 		end
 	newTask.task_fail_evaluate = 
 		function()
-			local target = EntityList:Get(ml_task_hub:CurrentTask().targetid)
-			return not ValidTable(target) or (target.incombat and not target.targetid == Player.id)
+			local target = EntityList:Get(ml_task_hub:ThisTask().targetid)
+			return not ValidTable(target) or (target.incombat and target.targetid ~= Player.id)
 		end
 	ml_task_hub:CurrentTask():AddSubTask(newTask)
 end

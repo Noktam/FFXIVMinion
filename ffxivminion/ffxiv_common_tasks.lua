@@ -373,7 +373,7 @@ function ffxiv_task_teleport.Create()
     newinst.name = "LT_TELEPORT"
     newinst.mapID = 0
 	newinst.mesh = nil
-    newinst.started = ml_global_information.Now
+    newinst.started = Now()
     
     return newinst
 end
@@ -383,6 +383,10 @@ function ffxiv_task_teleport:Init()
 end
 
 function ffxiv_task_teleport:task_complete_eval()
+	if (TimeSince(self.started) < 1500) then
+		return false
+	end
+	
 	if (	(TableSize(Player.castinginfo) == 0 or 
 			Player.castinginfo.channelingid ~= 5) and
 			not ml_mesh_mgr.loadingMesh	and 
@@ -400,7 +404,7 @@ function ffxiv_task_teleport:task_complete_eval()
 		end
 	end
 	
-	if (TimeSince(ml_task_hub:ThisTask().started) > 25000) then
+	if (TimeSince(self.started) > 30000) then
 		return true
 	end
 	
