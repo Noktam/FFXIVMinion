@@ -273,19 +273,20 @@ function ffxiv_quest_interact:task_complete_eval()
 	--self.isQuestObject should only be set after we interact with the object
 	--so if its not targetable or its gone (for doors that make you leave/enter rooms)
 	--then the task is complete
+	
 	local target = Player:GetTarget()
-	if(target and (target.type == 7 or target.type == 3)) then
-		if(ActionList:IsCasting()) then
+	if	(target and (target.type == 7 or target.type == 5 or target.type == 3)) then
+		if (ActionList:IsCasting()) then
 			return false
 		end
 	end
 	
-	local id = ml_task_hub:ThisTask().params["id"]
+	local id = self.params["id"]
     if (id and id > 0) then
-		local el = EntityList("closest,maxdistance=10,contentid="..tostring(id))
+		local el = EntityList("nearest,maxdistance=10,contentid="..tostring(id))
 		if(ValidTable(el)) then
 			local id, entity = next(el)
-			if(ValidTable(entity) and entity.type == 7) then
+			if	(ValidTable(entity) and entity.type == 7) then
 				return not entity.targetable
 			end
 		end
@@ -485,7 +486,10 @@ end
 function ffxiv_quest_dutykill:task_complete_eval()
 	local mapid = self.params["mapid"]
 	local disableMapCheck = self.params["disablemapcheck"] or false
-	return (Player.localmapid ~= mapid or disableMapCheck) and ffxiv_task_quest.QuestObjectiveChanged()
+	--local failtime = self.params["failtime"] or 120000
+
+	return ((Player.localmapid ~= mapid or disableMapCheck) and ffxiv_task_quest.QuestObjectiveChanged()) 
+	--or (not target and TimeSince(self.lastTargetFound) > failtime)))
 end
 
 function ffxiv_quest_dutykill:task_fail_eval()

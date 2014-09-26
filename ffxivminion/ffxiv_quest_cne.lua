@@ -188,8 +188,10 @@ function c_questmovetopos:evaluate()
 end
 function e_questmovetopos:execute()
 	local pos = ml_task_hub:CurrentTask().params["pos"]
+	local dismountDistance = ml_task_hub:CurrentTask().params["dismountdistance"] or 0
 	local newTask = ffxiv_task_movetopos.Create()
 	newTask.pos = pos
+	newTask.dismountDistance = dismountDistance
 	newTask.use3d = true
 	newTask.postDelay = 1500
 	if(ml_task_hub:CurrentTask().params["type"] == "nav")then
@@ -220,7 +222,6 @@ function e_questmovetopos:execute()
 	then
 		newTask:add( ke_killAggroTarget, newTask.overwatch_elements)
 	end
-	
 	ml_task_hub:CurrentTask():AddSubTask(newTask)
 end
 

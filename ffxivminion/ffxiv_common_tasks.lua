@@ -136,6 +136,8 @@ function ffxiv_task_movetopos.Create()
 	newinst.objectid = 0
 	newinst.useTeleport = false	-- this is for hack teleport, not in-game teleport spell
 	newinst.postDelay = 0
+	newinst.dismountTimer = 0
+	newinst.dismountDistance = 0
     
     return newinst
 end
@@ -211,7 +213,7 @@ function ffxiv_task_movetopos:task_complete_eval()
 		
 		local distance = 0.0
 		
-		if(ml_task_hub:CurrentTask().use3d) then
+		if (ml_task_hub:CurrentTask().use3d) then
 			distance = Distance3D(myPos.x, myPos.y, myPos.z, gotoPos.x, gotoPos.y, gotoPos.z)
 		else
 			distance = Distance2D(myPos.x, myPos.z, gotoPos.x, gotoPos.z)
@@ -236,7 +238,12 @@ function ffxiv_task_movetopos:task_complete_eval()
 			if (distance <= (self.range + self.gatherRange) and pathdistance < 10) then
 				return true
 			end
-		else
+		else	
+			if (self.dismountDistance > 0 and distance <= self.dismountDistance and Player.ismounted and Now() > self.dismountTimer) then
+				Dismount()
+				self.dismountTimer = Now() + 1500
+			end
+				
 			if (distance <= (self.range + self.gatherRange)) then
 				return true
 			end
