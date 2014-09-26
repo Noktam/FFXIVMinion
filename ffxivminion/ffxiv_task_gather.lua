@@ -26,6 +26,8 @@ function ffxiv_task_gather.Create()
     newinst.gatherid = 0
     newinst.markerTime = 0
     newinst.currentMarker = false
+	ml_global_information.currentMarker = false
+	
     newinst.gatherTimer = 0
 	newinst.gatherDistance = 1.5
 	newinst.maxGatherDistance = 100 -- for setting the range when the character is beeing considered "too far away from the gathermarker" where it would make him run back to the marker
@@ -321,7 +323,7 @@ function c_nextunspoiledmarker:evaluate()
 	
 	--Make sure we're supposed to be gathering unspoiled, and that we have a proper location table, that we haven't already gathered, and that the currentMarker is set to false.
 	if (gGatherUnspoiled == "0" or not ValidTable(ffxiv_task_gather.location) or ffxiv_task_gather.unspoiledGathered or 
-		ml_task_hub:CurrentTask().currentMarker ~= false or ml_task_hub:CurrentTask().gatherid ~= 0) then
+		ml_task_hub:ThisTask().currentMarker ~= false or ml_task_hub:ThisTask().gatherid ~= 0) then
 		return false
 	end
 	
@@ -342,7 +344,7 @@ function c_nextunspoiledmarker:evaluate()
     end
 	
     local marker = ml_marker_mgr.GetMarker(ffxiv_task_gather.location.marker)
-	if (ValidTable(marker) and ml_task_hub:CurrentTask().currentMarker ~= marker) then
+	if (ValidTable(marker) and ml_task_hub:ThisTask().currentMarker ~= marker) then
 		e_nextunspoiledmarker.marker = marker
 		return true
 	end
@@ -350,14 +352,13 @@ function c_nextunspoiledmarker:evaluate()
     return false
 end
 function e_nextunspoiledmarker:execute()
-    ml_task_hub:CurrentTask().currentMarker = e_nextunspoiledmarker.marker
-    ml_task_hub:CurrentTask().markerTime = Now()
-	ml_global_information.MarkerTime = Now()
-    ml_global_information.MarkerMinLevel = ml_task_hub:CurrentTask().currentMarker:GetMinLevel()
-    ml_global_information.MarkerMaxLevel = ml_task_hub:CurrentTask().currentMarker:GetMaxLevel()
-	ml_global_information.BlacklistContentID = ""
-    ml_global_information.WhitelistContentID = ""
-	gStatusMarkerName = ml_task_hub:CurrentTask().currentMarker:GetName()
+	ml_global_information.currentMarker = e_nextunspoiledmarker.marker
+    ml_task_hub:ThisTask().currentMarker = e_nextunspoiledmarker.marker
+    ml_task_hub:ThisTask().markerTime = Now() + (ml_task_hub:ThisTask().currentMarker:GetTime() * 1000)
+	ml_global_information.MarkerTime = Now() + (ml_task_hub:ThisTask().currentMarker:GetTime() * 1000)
+    ml_global_information.MarkerMinLevel = ml_task_hub:ThisTask().currentMarker:GetMinLevel()
+    ml_global_information.MarkerMaxLevel = ml_task_hub:ThisTask().currentMarker:GetMaxLevel()
+	gStatusMarkerName = ml_task_hub:ThisTask().currentMarker:GetName()
 end
 
 c_nextgathermarker = inheritsFrom( ml_cause )
@@ -375,49 +376,51 @@ function c_nextgathermarker:evaluate()
     end
 	
 	if (gMarkerMgrMode == strings[gCurrentLanguage].singleMarker) then
-		ml_task_hub:CurrentTask().filterLevel = false
+		ml_task_hub:ThisTask().filterLevel = false
+	else
+		ml_task_hub:ThisTask().filterLevel = true
 	end
     
-    if ( ml_task_hub:CurrentTask().currentMarker ~= nil and ml_task_hub:CurrentTask().currentMarker ~= 0 ) then
+    if ( ml_task_hub:ThisTask().currentMarker ~= nil and ml_task_hub:ThisTask().currentMarker ~= 0 ) then
         local marker = nil
         
         -- first check to see if we have no initialized marker
-        if (ml_task_hub:CurrentTask().currentMarker == false) then --default init value
+        if (ml_task_hub:ThisTask().currentMarker == false) then --default init value
             local markerType = ""
             if (Player.job == FFXIV.JOBS.BOTANIST) then
                 markerType = strings[gCurrentLanguage].botanyMarker
             else
                 markerType = strings[gCurrentLanguage].miningMarker
             end
-            marker = ml_marker_mgr.GetNextMarker(markerType, ml_task_hub:CurrentTask().filterLevel)
+            marker = ml_marker_mgr.GetNextMarker(markerType, ml_task_hub:ThisTask().filterLevel)
 			
 			if (marker == nil) then
-				ml_task_hub:CurrentTask().filterLevel = false
-				marker = ml_marker_mgr.GetNextMarker(markerType, ml_task_hub:CurrentTask().filterLevel)
+				ml_task_hub:ThisTask().filterLevel = false
+				marker = ml_marker_mgr.GetNextMarker(markerType, ml_task_hub:ThisTask().filterLevel)
 			end
         end
         
         -- next check to see if our level is out of range
         if (marker == nil) then
-            if (ValidTable(ml_task_hub:CurrentTask().currentMarker)) then
-                if 	(ml_task_hub:CurrentTask().filterLevel) and
-					(Player.level < ml_task_hub:CurrentTask().currentMarker:GetMinLevel() or 
-                    Player.level > ml_task_hub:CurrentTask().currentMarker:GetMaxLevel()) 
+            if (ValidTable(ml_task_hub:ThisTask().currentMarker)) then
+                if 	(ml_task_hub:ThisTask().filterLevel) and
+					(Player.level < ml_task_hub:ThisTask().currentMarker:GetMinLevel() or 
+                    Player.level > ml_task_hub:ThisTask().currentMarker:GetMaxLevel()) 
                 then
-                    marker = ml_marker_mgr.GetNextMarker(ml_task_hub:CurrentTask().currentMarker:GetType(), ml_task_hub:CurrentTask().filterLevel)
+                    marker = ml_marker_mgr.GetNextMarker(ml_task_hub:ThisTask().currentMarker:GetType(), ml_task_hub:ThisTask().filterLevel)
                 end
             end
         end
         
         -- next check to see if we can't find any gatherables at our current marker
-        if (ValidTable(ml_task_hub:CurrentTask().currentMarker)) then            
-			if ( ml_task_hub:CurrentTask().idleTimer ~= 0 and TimeSince(ml_task_hub:CurrentTask().idleTimer) > 30 * 1000 ) then
-                ml_task_hub:CurrentTask().idleTimer = 0
-                local markerPos = ml_task_hub:CurrentTask().currentMarker:GetPosition()
+        if (ValidTable(ml_task_hub:ThisTask().currentMarker)) then            
+			if ( ml_task_hub:ThisTask().idleTimer ~= 0 and TimeSince(ml_task_hub:ThisTask().idleTimer) > 30 * 1000 ) then
+                ml_task_hub:ThisTask().idleTimer = 0
+                local markerPos = ml_task_hub:ThisTask().currentMarker:GetPosition()
 				local pPos = Player.pos
 				-- we are nearby our marker and no nodes are nearby anymore, grab the next one
 				if (Distance2D(pPos.x, pPos.z, markerPos.x, markerPos.z) < 15) then
-                    marker = ml_marker_mgr.GetNextMarker(ml_task_hub:CurrentTask().currentMarker:GetType(), ml_task_hub:CurrentTask().filterLevel)
+                    marker = ml_marker_mgr.GetNextMarker(ml_task_hub:ThisTask().currentMarker:GetType(), ml_task_hub:ThisTask().filterLevel)
 				end
             end
         end
@@ -425,11 +428,10 @@ function c_nextgathermarker:evaluate()
         -- last check if our time has run out
         if (marker == nil) then
 			if (ValidTable(ml_task_hub:CurrentTask().currentMarker)) then
-				local time = ml_task_hub:CurrentTask().currentMarker:GetTime()
-				if (time and time ~= 0 and TimeSince(ml_task_hub:CurrentTask().markerTime) > time * 1000) then
-					--ml_debug("Marker timer: "..tostring(TimeSince(ml_task_hub:CurrentTask().markerTime)) .."seconds of " ..tostring(time)*1000)
+				local expireTime = ml_task_hub:ThisTask().markerTime
+				if (Now() > expireTime) then
 					ml_debug("Getting Next Marker, TIME IS UP!")
-					marker = ml_marker_mgr.GetNextMarker(ml_task_hub:CurrentTask().currentMarker:GetType(), ml_task_hub:CurrentTask().filterLevel)
+					marker = ml_marker_mgr.GetNextMarker(ml_task_hub:ThisTask().currentMarker:GetType(), ml_task_hub:ThisTask().filterLevel)
 				else
 					return false
 				end
@@ -445,14 +447,15 @@ function c_nextgathermarker:evaluate()
     return false
 end
 function e_nextgathermarker:execute()
-    ml_task_hub:CurrentTask().currentMarker = e_nextgathermarker.marker
-    ml_task_hub:CurrentTask().markerTime = ml_global_information.Now
-	ml_global_information.MarkerTime = ml_global_information.Now
-    ml_global_information.MarkerMinLevel = ml_task_hub:CurrentTask().currentMarker:GetMinLevel()
-    ml_global_information.MarkerMaxLevel = ml_task_hub:CurrentTask().currentMarker:GetMaxLevel()
-	ml_global_information.BlacklistContentID = ml_task_hub:CurrentTask().currentMarker:GetFieldValue(strings[gCurrentLanguage].NOTcontentIDEquals)
-    ml_global_information.WhitelistContentID = ml_task_hub:CurrentTask().currentMarker:GetFieldValue(strings[gCurrentLanguage].contentIDEquals)
-	gStatusMarkerName = ml_task_hub:CurrentTask().currentMarker:GetName()
+	ml_global_information.currentMarker = e_nextgathermarker.marker
+    ml_task_hub:ThisTask().currentMarker = e_nextgathermarker.marker
+    ml_task_hub:ThisTask().markerTime = Now() + (ml_task_hub:ThisTask().currentMarker:GetTime() * 1000)
+	ml_global_information.MarkerTime = Now() + (ml_task_hub:ThisTask().currentMarker:GetTime() * 1000)
+    ml_global_information.MarkerMinLevel = ml_task_hub:ThisTask().currentMarker:GetMinLevel()
+    ml_global_information.MarkerMaxLevel = ml_task_hub:ThisTask().currentMarker:GetMaxLevel()
+	ml_global_information.BlacklistContentID = ml_task_hub:ThisTask().currentMarker:GetFieldValue(strings[gCurrentLanguage].NOTcontentIDEquals)
+    ml_global_information.WhitelistContentID = ml_task_hub:ThisTask().currentMarker:GetFieldValue(strings[gCurrentLanguage].contentIDEquals)
+	gStatusMarkerName = ml_task_hub:ThisTask().currentMarker:GetName()
 end
 
 c_nextgatherlocation = inheritsFrom( ml_cause )
@@ -640,7 +643,7 @@ function e_nextgatherlocation:execute()
 			newTask.mapID = location.mapid
 			newTask.mesh = location.mesh
 			newTask.task_complete_execute = function()
-				self.completed = true
+				ml_task_hub:ThisTask().completed = true
 				ffxiv_task_gather.location = location
 				gGatherMapLocation = location.name
 				ffxiv_task_gather.unspoiledGathered = false

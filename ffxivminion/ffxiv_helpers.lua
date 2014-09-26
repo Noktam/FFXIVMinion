@@ -650,7 +650,12 @@ function GetPVPTarget()
     local nearest = nil
 	local lowestHealth = nil
     
-	local enemyParty = EntityList("onmesh,attackable,alive,chartype=4")
+	local enemyParty = nil
+	if (Player.localmapid == 376) then
+		enemyParty = EntityList("shortestpath,onmesh,attackable,alive,chartype=4,maxpathdistance=45")
+	else
+		enemyParty = EntityList("onmesh,attackable,alive,chartype=4")
+	end
     if (ValidTable(enemyParty)) then
         local id, entity = next(enemyParty)
         while (id ~= nil and entity ~= nil) do	
@@ -784,6 +789,11 @@ function GetPVPTarget()
 	ml_error("Bad, we shouldn't have gotten to this point!")
 end
 
+function GetPrioritizedTarget( targetlist)
+	--targetlist should be a semi-colon ";" separated string list
+	
+end
+
 function GetDutyTarget( maxHP )
 	maxHP = maxHP or nil
 	local el = nil
@@ -910,10 +920,20 @@ function GetDutyTarget( maxHP )
 end
 
 function GetNearestAggro()
+	taskName = ml_task_hub:CurrentTask().name
+	
 	if (not IsNullString(excludeString)) then
-		el = EntityList("lowesthealth,alive,attackable,los,onmesh,targetingme,exclude_contentid="..excludeString..",maxdistance=30") 
+		if (taskName == "LT_GRIND") then
+			el = EntityList("lowesthealth,alive,attackable,onmesh,targetingme,fateid=0,exclude_contentid="..excludeString..",maxdistance=30") 
+		else
+			el = EntityList("lowesthealth,alive,attackable,onmesh,targetingme,exclude_contentid="..excludeString..",maxdistance=30") 
+		end
 	else
-		el = EntityList("lowesthealth,alive,attackable,los,onmesh,targetingme,maxdistance=30") 
+		if (taskName == "LT_GRIND") then
+			el = EntityList("lowesthealth,alive,attackable,onmesh,targetingme,fateid=0,maxdistance=30") 
+		else
+			el = EntityList("lowesthealth,alive,attackable,onmesh,targetingme,maxdistance=30") 
+		end
 	end
 	
 	if ( el ) then
@@ -929,15 +949,22 @@ function GetNearestAggro()
 		for i, member in pairs(party) do
 			if (member.id and member.id ~= 0) then
 				if (not IsNullString(excludeString)) then
-					el = EntityList("lowesthealth,alive,attackable,onmesh,targeting="..tostring(member.id)..",exclude_contentid="..excludeString..",maxdistance=30")
+					if (taskName == "LT_GRIND") then
+						el = EntityList("lowesthealth,alive,attackable,onmesh,fateid=0,targeting="..tostring(member.id)..",exclude_contentid="..excludeString..",maxdistance=30")
+					else
+						el = EntityList("lowesthealth,alive,attackable,onmesh,targeting="..tostring(member.id)..",exclude_contentid="..excludeString..",maxdistance=30")
+					end
 				else
-					el = EntityList("lowesthealth,alive,attackable,onmesh,targeting="..tostring(member.id)..",maxdistance=30")
+					if (taskName == "LT_GRIND") then
+						el = EntityList("lowesthealth,alive,attackable,onmesh,fateid=0,targeting="..tostring(member.id)..",maxdistance=30")
+					else
+						el = EntityList("lowesthealth,alive,attackable,onmesh,targeting="..tostring(member.id)..",maxdistance=30")
+					end
 				end
 				
 				if ( el ) then
 					local i,e = next(el)
 					if (i~=nil and e~=nil) then
-						--d("Grind returned, using block:"..tostring(block))
 						return e
 					end
 				end

@@ -381,7 +381,7 @@ function ffxiv_task_fate:task_complete_execute()
 	Player:Stop()
 	ffxiv_task_grind.inFate = false
 	self:Terminate()
-	self:ParentTask():SetDelay(3000)
+	self:ParentTask():SetDelay(6000)
 end
 
 
