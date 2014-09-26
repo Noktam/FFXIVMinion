@@ -21,8 +21,8 @@ end
 
 function ffxiv_task_assist:Init()
     --init Process() cnes
-	--local ke_pressConfirm = ml_element:create( "ConfirmDuty", c_pressconfirm, e_pressconfirm, 25 )
-    --self:add(ke_pressConfirm, self.process_elements)
+	local ke_pressConfirm = ml_element:create( "ConfirmDuty", c_pressconfirm, e_pressconfirm, 25 )
+    self:add(ke_pressConfirm, self.process_elements)
 	
 	--local ke_acceptQuest = ml_element:create( "AcceptQuest", c_acceptquest, e_acceptquest, 23 )
     --self:add(ke_acceptQuest, self.process_elements)
@@ -115,7 +115,7 @@ function ffxiv_task_assist:Process()
         end
     end	
 
-    if 	( target and target.alive and target.los and (target.attackable or target.chartype==2 or target.chartype==5 or target.chartype==4) and target.distance <= 30 ) then
+    if 	( target and target.alive and (target.attackable or target.chartype==2 or target.chartype==5 or target.chartype==4) and target.distance <= 30 ) then
         local pos = target.pos
             			
         SkillMgr.Cast( target )
