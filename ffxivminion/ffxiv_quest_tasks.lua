@@ -455,9 +455,11 @@ function ffxiv_quest_dutykill.Create()
     newinst.overwatch_elements = {}
     newinst.name = "QUEST_DUTYKILL"
 	newinst.currentPrio = 999
+	--newinst.lastTargetFound = Now()
     
     newinst.params = {}
 	newinst.stepCompleted = false
+	newinst.targetid = 0
     
     return newinst
 end
@@ -466,12 +468,15 @@ function ffxiv_quest_dutykill:Init()
     --priority kill runs in overwatch so it can switch targets when necessary
 	local ke_questMoveToHealer = ml_element:create( "QuestMoveToHealer", c_questmovetohealer, e_questmovetohealer, 25 )
     self:add( ke_questMoveToHealer, self.overwatch_elements)
-
-    local ke_questMoveToMap = ml_element:create( "QuestMoveToMap", c_questmovetomap, e_questmovetomap, 25 )
-    self:add( ke_questMoveToMap, self.process_elements)
+	
+	--local ke_questTrackTarget = ml_element:create( "QuestTrackTarget", c_questtracktarget, e_questtracktarget, 23 )
+    --self:add( ke_questTrackTarget, self.overwatch_elements)
 	
 	local ke_questPriorityKill = ml_element:create( "QuestPriorityKill", c_questprioritykill, e_questprioritykill, 20 )
     self:add( ke_questPriorityKill, self.overwatch_elements)
+
+    local ke_questMoveToMap = ml_element:create( "QuestMoveToMap", c_questmovetomap, e_questmovetomap, 25 )
+    self:add( ke_questMoveToMap, self.process_elements)
 	
 	local ke_questMoveToPos = ml_element:create( "QuestMoveToPos", c_questmovetopos, e_questmovetopos, 15 )
     self:add( ke_questMoveToPos, self.process_elements)

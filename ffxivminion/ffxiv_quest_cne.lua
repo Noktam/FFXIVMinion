@@ -333,6 +333,20 @@ function e_questinteract:execute()
 	end
 end
 
+c_questtracktarget = inheritsFrom( ml_cause )
+e_questtracktarget = inheritsFrom( ml_effect )
+c_questtracktarget.throttle = 1000
+function c_questtracktarget:evaluate()
+	local target = Player:GetTarget()
+	if (target) then
+		return true
+	end
+end
+function e_questtracktarget:execute()
+	ml_task_hub:ThisTask().lastTargetFound = Now()
+	ml_task_hub:ThisTask().preserveSubtasks = true;
+end
+
 c_questhandover = inheritsFrom( ml_cause )
 e_questhandover = inheritsFrom( ml_effect )
 function c_questhandover:evaluate()
@@ -424,6 +438,7 @@ function e_questkill:execute()
 		function()
 			ffxiv_task_quest.killTaskCompleted = true
 			ml_task_hub:CurrentTask().completed = true
+			d(ml_task_hub:CurrentTask().name)
 			--set a delay to give the inckillcount cne time to check quest flag update from server
 			ml_task_hub:CurrentTask():SetDelay(3000)
 		end
@@ -434,6 +449,53 @@ function e_questkill:execute()
 		end
 	ml_task_hub:CurrentTask():AddSubTask(newTask)
 end
+
+--[[
+c_questprioritykill = inheritsFrom( ml_cause )
+e_questprioritykill = inheritsFrom( ml_effect )
+e_questprioritykill.id = nil
+function c_questprioritykill:evaluate()
+	local ids = ml_task_hub:ThisTask().params["ids"]
+	
+	for uniqueid in StringSplit(ids,";") do
+		local el = EntityList("shortestpath,onmesh,alive,attackable,contentid="..uniqueid)
+		if (ValidTable(el)) then
+			local id, target = next(el)
+			if (target) then
+				local currTarget = Player:GetTarget()
+				if (currTarget) then
+					if target.id == currTarget and currTarget.alive then
+						return false
+					end
+				end
+				
+				e_questprioritykill.id = target.id
+				return true
+			end
+		end	
+	end
+	
+	return false
+end
+function e_questprioritykill:execute()
+	ml_task_hub:ThisTask().targetid = e_questprioritykill.id
+	
+	local newTask = ffxiv_task_killtarget.Create()
+	newTask.targetid = e_questprioritykill.id
+	newTask.task_complete_execute = 
+		function()
+			ml_task_hub:ThisTask():ParentTask().targetid = 0
+			ml_task_hub:ThisTask().completed = true
+		end
+	newTask.task_fail_execute = 
+		function()
+			ml_task_hub:ThisTask():ParentTask().targetid = 0
+			ml_task_hub:ThisTask().valid = false
+		end
+	ml_task_hub:ThisTask():DeleteSubTasks()
+	ml_task_hub:CurrentTask():AddSubTask(newTask)
+end
+--]]
 
 c_questprioritykill = inheritsFrom( ml_cause )
 e_questprioritykill = inheritsFrom( ml_effect )
@@ -912,7 +974,12 @@ end
 c_questkillaggrotarget = inheritsFrom( ml_cause )
 e_questkillaggrotarget = inheritsFrom( ml_effect )
 function c_questkillaggrotarget:evaluate()
-	if(Player.castinginfo.channeltime > 0) then
+	local ignoreAggro = false
+	if (ml_task_hub:CurrentTask().params) then
+		ignoreAggro = ml_task_hub:CurrentTask().params["ignoreaggro"] or false
+	end
+	
+	if(Player.castinginfo.channeltime > 0 or ignoreAggro) then
 		return false
 	end
 	
