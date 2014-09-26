@@ -1006,7 +1006,7 @@ end
 function ffxiv_nav_interact:task_complete_eval()		
 	if (IsLoading() and not self.areaChanged) then
 		for i, element in pairs(self.process_elements) do
-			if (element.name == "WalkToPos") then
+			if (element.name == "WalkToPos" or element.name == "Mount") then
 				table.remove(self.process_elements,i)
 			end
 		end
@@ -1019,6 +1019,10 @@ function ffxiv_nav_interact:task_complete_eval()
 	
 	if (self.pos and ValidTable(self.pos)) then
 		if (not self.addedMoveElement) then
+			
+			local ke_mount = ml_element:create( "Mount", c_mount, e_mount, 20 )
+			self:add( ke_mount, self.process_elements)
+			
 			local ke_walkToPos = ml_element:create( "WalkToPos", c_walktopos, e_walktopos, 10 )
 			self:add( ke_walkToPos, self.process_elements)
 			self.addedMoveElement = true

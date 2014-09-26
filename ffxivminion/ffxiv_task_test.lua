@@ -97,34 +97,36 @@ function ffxiv_task_test.UIInit()
 end
 
 function ffxiv_task_test.OnUpdate( event, tickcount )
-	if (TimeSince(ffxiv_task_test.lastTick) >= 1000) then
-		ffxiv_task_test.lastTick = Now()
-		
-		local tasks = {}
-		local level = 1
-		
-		if (ml_task_hub:RootTask()) then
-			local task = ml_task_hub:RootTask()
-			currTask = nil
-			while (task ~= nil) do
-				tasks[level] = task.name
-				currTask = task
-				task = task.subtask
-				level = level + 10
+	if (ml_task_hub.shouldRun) then
+		if (TimeSince(ffxiv_task_test.lastTick) >= 1000) then
+			ffxiv_task_test.lastTick = Now()
+			
+			local tasks = {}
+			local level = 1
+			
+			if (ml_task_hub:RootTask()) then
+				local task = ml_task_hub:RootTask()
+				currTask = nil
+				while (task ~= nil) do
+					tasks[level] = task.name
+					currTask = task
+					task = task.subtask
+					level = level + 10
+				end
 			end
-		end
-		
-		local winName = "NavTest"
-		GUI_DeleteGroup(winName,"Tasks")
-		if (TableSize(tasks) > 0) then
-			for k,v in spairs(tasks) do
-				GUI_NewButton(winName, tostring(k).."("..v..")", "TestViewTask"..tostring(k), "Tasks")
+			
+			local winName = "NavTest"
+			GUI_DeleteGroup(winName,"Tasks")
+			if (TableSize(tasks) > 0) then
+				for k,v in spairs(tasks) do
+					GUI_NewButton(winName, tostring(k).."("..v..")", "TestViewTask"..tostring(k), "Tasks")
+				end
+				GUI_UnFoldGroup(winName,"Tasks")
 			end
-			GUI_UnFoldGroup(winName,"Tasks")
-		end
 
-		ffxivminion.SizeWindow(winName)
-		GUI_RefreshWindow(winName)
+			ffxivminion.SizeWindow(winName)
+			GUI_RefreshWindow(winName)
+		end
 	end
 end
 
