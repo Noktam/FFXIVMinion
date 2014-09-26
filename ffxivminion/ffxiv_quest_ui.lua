@@ -82,8 +82,8 @@ QM.Variables = {
 	eTaskQuestID = 	{ default = 0, 			profile = "questid", 		cast = "number"},
 	qTaskKillTarget = 	{ default = "",		profile = "id", 			cast = "number"},
 	eTaskKillTarget = 	{ default = "",		profile = "id", 			cast = "number"},
-	qTaskKillPriorities = 	{ default = "",		profile = "ids", 			cast = "string"},
-	eTaskKillPriorities = 	{ default = "",		profile = "ids", 			cast = "string"},
+	qTaskKillPriorities = 	{ default = "",		profile = "ids", 		cast = "string"},
+	eTaskKillPriorities = 	{ default = "",		profile = "ids", 		cast = "string"},
 	qTaskKillCount = 	{ default = 0, 		profile = "killcount", 		cast = "number"},
 	eTaskKillCount = 	{ default = 0, 		profile = "killcount", 		cast = "number"},
 	qTaskDelay = 		{ default = 0, 		profile = "delay", 			cast = "number"},
@@ -140,7 +140,7 @@ QM.Strings = {
 
 QM.Builds = {
 	Main = {
-		[1] = {5, "GUI_NewComboBox",QM.Windows.Main.name,strings[gCurrentLanguage].profileType,		"qProfileType",	strings[gCurrentLanguage].details, strings[gCurrentLanguage].dutyMode..","..strings[gCurrentLanguage].questMode},
+		[1] = {5, "GUI_NewComboBox",QM.Windows.Main.name,strings[gCurrentLanguage].profileType,		"qProfileType",	strings[gCurrentLanguage].details, strings[gCurrentLanguage].questMode..","..strings[gCurrentLanguage].dutyMode},
 		[2] = {5, "GUI_NewComboBox",QM.Windows.Main.name,strings[gCurrentLanguage].existingProfile, "qProfileName",	strings[gCurrentLanguage].details, "None"},
 		[3] = {4, "GUI_NewField", 	QM.Windows.Main.name,strings[gCurrentLanguage].newProfileName,	"qProfileNew",	strings[gCurrentLanguage].details},
 		[4] = {4, "GUI_NewButton", 	QM.Windows.Main.name,strings[gCurrentLanguage].createProfile, 	"QM.CreateProfile", strings[gCurrentLanguage].details},
