@@ -508,6 +508,10 @@ function ml_mesh_mgr.OnUpdate( tickcount )
 				end
 			end	
 			
+			if ( MeshManager:IsKeyPressed(162) and MeshManager:IsKeyPressed(2)) then
+				ml_mesh_mgr.CreateSingleCell()
+			end	
+			
 			-- Record Mesh & Gamedata
 			if ( gMeshrec == "1" or gMeshChange == "1") then
 				-- Key-Input-Handler
@@ -780,10 +784,9 @@ function ml_mesh_mgr.HandleOMC( event, OMCType )
 end
 
 function ml_mesh_mgr.CreateSingleCell()
-	d("Creating a single cell outside the raster!")
-	local pPos = Player.pos
+	local pPos = shallowcopy(Player.pos)
 	local newVertexCenter = { x=pPos.x, y=pPos.y, z=pPos.z }
-	d(MeshManager:CreateSingleCell( newVertexCenter))
+	MeshManager:CreateSingleCell( newVertexCenter)
 end
 
 -- Toggle meshmanager Window

@@ -620,7 +620,7 @@ function c_transportgate:evaluate()
 					details.conversationIndex = pos.i or 0
 					e_transportgate.details = details
 					return true
-				elseif (ValidTable(pos) and pos.a and gUseAirships == "1") then
+				elseif (ValidTable(pos) and pos.a) then
 					local details = {}
 					details.uniqueid = pos.a
 					details.pos = { x = pos.x, y = pos.y, z = pos.z }
@@ -953,15 +953,41 @@ function c_usenavinteraction:evaluate()
 			end,
 			reaction = function()
 				if ((Player.pos.x > 218 and Player.pos.z > 51) and not (gotoPos.x > 218 and gotoPos.z > 51)) then
-					local newTask = ffxiv_nav_interact.Create()
-					newTask.pos = {x = 344.447, y = 32.770, z = 91.694}
-					newTask.uniqueid = 1003588
-					ml_task_hub:CurrentTask():AddSubTask(newTask)
+					if (gUseAetherytes == "1") then
+						Player:Stop()
+						Dismount()
+						
+						if (Player.ismounted) then
+							return
+						end
+						
+						if (ActionIsReady(5) and not ActionList:IsCasting() and not IsLoading()) then
+							Player:Teleport(12)
+						end
+					else
+						local newTask = ffxiv_nav_interact.Create()
+						newTask.pos = {x = 344.447, y = 32.770, z = 91.694}
+						newTask.uniqueid = 1003588
+						ml_task_hub:CurrentTask():AddSubTask(newTask)
+					end
 				elseif (not (Player.pos.x > 218 and Player.pos.z > 51) and (gotoPos.x > 218 and gotoPos.z > 51)) then
-					local newTask = ffxiv_nav_interact.Create()
-					newTask.pos = {x = 21.919, y = 34.0788, z = 223.187}
-					newTask.uniqueid = 1003589
-					ml_task_hub:CurrentTask():AddSubTask(newTask)
+					if (gUseAetherytes == "1") then
+						Player:Stop()
+						Dismount()
+						
+						if (Player.ismounted) then
+							return
+						end
+						
+						if (ActionIsReady(5) and not ActionList:IsCasting() and not IsLoading()) then
+							Player:Teleport(11)
+						end
+					else
+						local newTask = ffxiv_nav_interact.Create()
+						newTask.pos = {x = 21.919, y = 34.0788, z = 223.187}
+						newTask.uniqueid = 1003589
+						ml_task_hub:CurrentTask():AddSubTask(newTask)
+					end
 				end
 			end,
 		},

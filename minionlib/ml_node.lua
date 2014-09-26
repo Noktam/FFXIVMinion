@@ -52,7 +52,11 @@ end
 function ml_node:DistanceTo(id)
 	local neighbor = self:GetNeighbor(id)
     if (neighbor) then
-        return neighbor.cost or 5
+		local cost = neighbor.cost or 5
+		if (TableSize(neighbor.gates) == 1 and neighbor.gates[1].a ~= nil and gUseAirships == "0") then
+			cost = 999
+		end
+        return cost
     end
     
     return nil
