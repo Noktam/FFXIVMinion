@@ -203,7 +203,7 @@ function c_nexthuntmarker:evaluate()
 					if (distance <= 25) then
 						marker = ml_marker_mgr.GetNextMarker(strings[gCurrentLanguage].huntMarker, false)
 					end
-				elseif (Now() > expireTime and ml_task_hub:ThisTask().atMarker)
+				elseif (Now() > expireTime and ml_task_hub:ThisTask().atMarker) then
 					marker = ml_marker_mgr.GetNextMarker(strings[gCurrentLanguage].huntMarker, false)
 				else
 					return false
