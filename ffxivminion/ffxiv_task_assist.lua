@@ -116,9 +116,7 @@ function ffxiv_task_assist:Process()
     end	
 
     if 	( target and target.alive and (target.attackable or target.chartype==2 or target.chartype==5 or target.chartype==4) and target.distance <= 30 ) then
-        local pos = target.pos
-            			
-        SkillMgr.Cast( target )
+        SkillMgr.Cast(target)
     end
 	
 	if ( target == nil and not ActionList:IsCasting()) then

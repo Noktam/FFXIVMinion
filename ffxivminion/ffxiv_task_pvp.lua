@@ -831,4 +831,4 @@ function ffxiv_task_pvp.OnUpdate( Event, ticks )
 	end
 end
 
-RegisterEventHandler("Gameloop.Update", ffxiv_task_pvp.OnUpdate)
+--RegisterEventHandler("Gameloop.Update", ffxiv_task_pvp.OnUpdate)
