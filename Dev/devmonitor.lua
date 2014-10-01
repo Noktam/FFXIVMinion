@@ -162,7 +162,7 @@ function Dev.ModuleInit()
 	GUI_NewButton("Dev","MoveRight","Dev.MoveR","MovementInfo")
 	GUI_NewButton("Dev","Stop","Dev.MoveS","MovementInfo")
 	GUI_NewNumeric("Dev","Set Speed","mimovss","MovementInfo")
-	GUI_NewComboBox("Dev","Set SpeedDirection","mimovssdir","MovementInfo","Forward,Backward,Left,Right");
+	GUI_NewComboBox("Dev","Set SpeedDirection","mimovssdir","MovementInfo","Forward,Backward,Left,Right")
 	GUI_NewButton("Dev","Set Speed","Dev.SetSpeed","MovementInfo")
 	mimovss = 0
 	mimovssdir = "Forward"
@@ -172,6 +172,9 @@ function Dev.ModuleInit()
 	GUI_NewField("Dev","X: ","tb_xPos","NavigationSystem")
 	GUI_NewField("Dev","Y: ","tb_yPos","NavigationSystem")
 	GUI_NewField("Dev","Z: ","tb_zPos","NavigationSystem")
+	GUI_NewField("Dev","Range:", "gNaviRange", "NavigationSystem")
+	GUI_NewCheckbox("Dev","Use Follow:", "gNaviUseFollow", "NavigationSystem")
+	GUI_NewCheckbox("Dev","Random Path:", "gNaviRandom", "NavigationSystem")
 	GUI_NewButton("Dev","GetCurrentPos","Dev.playerPosition","NavigationSystem")	
 	GUI_NewField("Dev","NavigateTo Result:","tb_nRes","NavigationSystem")
 	GUI_NewButton("Dev","NavigateTo","Dev.naviTo","NavigationSystem")
@@ -431,7 +434,7 @@ function Dev.HandleButtons( Event, arg )
 				tb_yPos = tostring(p.y)
 				tb_zPos = tostring(p.z)
 		elseif ( arg == "Dev.naviTo") then
-			tb_nRes = tostring(Player:MoveTo(tonumber(tb_xPos),tonumber(tb_yPos),tonumber(tb_zPos)))
+			tb_nRes = tostring(Player:MoveTo(tonumber(tb_xPos),tonumber(tb_yPos),tonumber(tb_zPos),tonumber(gNaviRange),gNaviUseFollow == "1",gNaviRandom == "1"))
 		elseif ( arg == "Dev.moveTo") then
 			Player:MoveToStraight(tonumber(tb_xPos),tonumber(tb_yPos),tonumber(tb_zPos))
 		elseif ( arg == "Dev.teleport") then
