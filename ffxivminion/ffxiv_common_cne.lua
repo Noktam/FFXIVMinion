@@ -407,7 +407,7 @@ function c_avoid:evaluate()
 						or (distance > 20 and e.castinginfo.channeltargetid == e.id) 
 						or (e.castinginfo.channeltargetid ~= e.id and e.targetid ~= Player.id)
 						or (e.level ~= nil and e.level ~= 0 and plevel > e.level + 5)) then
-						c_avoid.target = e
+						c_avoid.target = deepcopy(e,true)
 						return true
 					end
 				end
@@ -434,7 +434,7 @@ function c_avoid:evaluate()
         return false
     end
 
-	c_avoid.target = target
+	c_avoid.target = deepcopy(target,true)
     return true
 end
 

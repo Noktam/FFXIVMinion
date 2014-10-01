@@ -390,7 +390,7 @@ function c_dutyidle:evaluate()
 	(IsPartyLeader() and ml_task_hub:ThisTask().state == "DUTY_ENTER" and Now() > ml_task_hub:ThisTask().joinTimer))
 end
 function e_dutyidle:execute()
-	ml_error("Stuck idle in task "..ml_task_hub:CurrentTask().name.." with state "..ml_task_hub:CurrentTask().state)
+	ml_error("Stuck idle in task "..ml_task_hub:ThisTask().name.." with state "..ml_task_hub:ThisTask().state)
 	ml_error("Attempting to recover from error.")
 	ml_task_hub:ThisTask():DeleteSubTasks()
 	ml_task_hub:ThisTask().state = ""
@@ -755,18 +755,18 @@ end
 c_deadduty = inheritsFrom( ml_cause )
 e_deadduty = inheritsFrom( ml_effect )
 c_deadduty.leader = {}
-e_deadduty.justRevived = false
+e_deadduty.reviveTimer = 0
 function c_deadduty:evaluate()
 	local leader = GetDutyLeader()
 	if (leader) then
 		c_deadduty.leader = leader
 	end
 	
-    if ((Player.revivestate == 2) and not e_deadduty.justRevived and OnDutyMap()) then --FFXIV.REVIVESTATE.DEAD & REVIVING
+    if ((not Player.alive) and ControlVisible("SelectYesno") and OnDutyMap()) then --FFXIV.REVIVESTATE.DEAD & REVIVING
         return true
     end 
 	
-	if ((Player.revivestate ~=2 and Player.revivestate ~=3) and e_deadduty.justRevived and not IsLoading()) then
+	if ((Player.alive) and Now() > e_deadduty.reviveTimer and not IsLoading()) then
 		return true
 	end
     return false
@@ -774,13 +774,13 @@ end
 function e_deadduty:execute()
     local leader = c_deadduty.leader
 	
-	if (Player.revivestate == 2) then
+	if (not Player.alive) then
 		-- try raise first
 		if(PressYesNo(true)) then
 			if (IsDutyLeader()) then
 				ffxiv_task_duty.leaderLastPos = Player.pos
 			end
-			e_deadduty.justRevived = true
+			e_deadduty.reviveTimer = Now() + 4000
 			return
 		end
 		-- press ok
@@ -788,7 +788,7 @@ function e_deadduty:execute()
 			if (IsDutyLeader()) then
 				ffxiv_task_duty.leaderLastPos = Player.pos
 			end
-			e_deadduty.justRevived = true
+			e_deadduty.reviveTimer = Now() + 4000
 			return
 		end
 	end

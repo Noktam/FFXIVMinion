@@ -19,7 +19,6 @@ function ffxiv_duty_kill_task.Create()
 	newinst.suppressFollowTimer = 0
 	newinst.suppressAssist = false
 	newinst.pullHandled = false
-	newinst.hasSynced = false
 	
     return newinst
 end
@@ -37,9 +36,6 @@ function ffxiv_duty_kill_task:Process()
 	end
 
 	local entity = GetDutyTarget(killPercent)
-	if (entity) then
-		--d(entity.name)
-	end
 	
 	local myPos = Player.pos
 	local fightPos = nil
@@ -65,28 +61,7 @@ function ffxiv_duty_kill_task:Process()
 				SetFacing(entity.pos.x, entity.pos.y, entity.pos.z)
 				self.pullHandled = true
 			end
-				--[[
-				SetFacing(entity.pos.x, entity.pos.y, entity.pos.z)
-				Player:SetTarget(entity.id)
-				SkillMgr.Cast( entity )
-				self.timer = Now() + math.random(3000,5000)
-				self.hasFailed = false
-				
-			elseif (Now() <= self.timer) then
-				Player:SetTarget(entity.id)
-				SetFacing(entity.pos.x, entity.pos.y, entity.pos.z)
-				SkillMgr.Cast( entity )
-				self.hasFailed = false
-				
-			elseif (Now() > self.timer and Player.incombat) then
-				GameHacks:TeleportToXYZ(fightPos.x, fightPos.y, fightPos.z)
-				Player:SetFacingSynced(Player.pos.h)
-				SetFacing(entity.pos.x, entity.pos.y, entity.pos.z)
-				self.pullHandled = true
-			end
-			--]]
-		elseif (ml_task_hub:CurrentTask().encounterData.doKill ~= nil and 
-				ml_task_hub:CurrentTask().encounterData.doKill == false ) then
+		elseif (ml_task_hub:CurrentTask().encounterData.doKill ~= nil and ml_task_hub:CurrentTask().encounterData.doKill == false ) then
 					if (entity.targetid == 0) then
 						Player:SetTarget(entity.id)
 						SetFacing(entity.pos.x, entity.pos.y, entity.pos.z)
@@ -95,13 +70,10 @@ function ffxiv_duty_kill_task:Process()
 					else
 						self.hasFailed = true
 					end
-			--return false
-		elseif (ml_task_hub:CurrentTask().encounterData.doKill == nil or 
-				ml_task_hub:CurrentTask().encounterData.doKill == true) then
+		elseif (ml_task_hub:CurrentTask().encounterData.doKill == nil or ml_task_hub:CurrentTask().encounterData.doKill == true ) then
 					self.hasFailed = false
 					
 					local pos = entity.pos
-					
 					Player:SetTarget(entity.id)
 					
 					--Telecasting, teleport to mob portion.
@@ -114,8 +86,7 @@ function ffxiv_duty_kill_task:Process()
 						
 						SkillMgr.teleBack = startPos
 						GameHacks:TeleportToXYZ(pos.x + 1,pos.y, pos.z)
-						TurnAround()
-						--Player:SetFacing(pos.h)
+						Player:SetFacing(pos.x,pos.y, pos.z)
 						SkillMgr.teleCastTimer = Now() + 1600
 					end
 					
