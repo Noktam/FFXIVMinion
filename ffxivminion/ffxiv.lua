@@ -350,7 +350,6 @@ function ffxivminion.HandleInit()
 	gChocoStance_listitems = strings[gCurrentLanguage].stFree..","..strings[gCurrentLanguage].stDefender..","..strings[gCurrentLanguage].stAttacker..","..strings[gCurrentLanguage].stHealer..","..strings[gCurrentLanguage].stFollow
 	GUI_NewComboBox(winName,"Food", 	"gFood", group, "None")
 	GUI_NewComboBox(winName,"HQ Food", 	"gFoodHQ", group, "None")
-	GUI_NewComboBox(winName,"HQ Food", 	"gFoodHQ", group, "None")
 	GUI_NewCheckbox(winName,strings[gCurrentLanguage].avoidAOE, "gAvoidAOE",group)
 	GUI_NewCheckbox(winName,strings[gCurrentLanguage].randomPaths,"gRandomPaths",group )
 	GUI_NewCheckbox(winName,strings[gCurrentLanguage].doUnstuck,"gDoUnstuck",group )
@@ -460,7 +459,6 @@ function ffxivminion.HandleInit()
 		ml_blacklist.CreateBlacklist(strings[gCurrentLanguage].aoe)
 	end
 	
-
 	-- setup marker manager callbacks and vars
 	ml_marker_mgr.GetPosition = 	function () return Player.pos end
 	ml_marker_mgr.GetLevel = 		function () return Player.level end
