@@ -193,6 +193,9 @@ function ml_mesh_mgr.UpdateMeshfiles()
 		local i,meshname = next ( meshfilelist)
 		while i and meshname do
 			meshname = string.gsub(meshname, ".obj", "")
+			if (file_exists(ml_mesh_mgr.navmeshfilepath..meshname..".nx2")) then
+				os.remove(ml_mesh_mgr.navmeshfilepath..meshname..".nx2")
+			end
 			meshlist = meshlist..","..meshname
 			--d("Adding mesh to list : "..meshname)
 			i,meshname = next ( meshfilelist,i)
