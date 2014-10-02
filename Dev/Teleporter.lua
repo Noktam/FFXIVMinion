@@ -2,9 +2,8 @@ TP = { }
 TP.coordspath = GetStartupPath()..[[\LuaMods\Dev\Waypoint\]];
 TP.WinNames = {
 	Main = "Teleporter",
-	Save = "Teleporter Save",
-	Replace = "Teleporter Replace/Rename/Delete",
-	Info = "Info",
+	Save = "New Waypoint",
+	Edit = "Edit Waypoint",
 }
 TP.WinName = TP.WinNames.Main
 
@@ -17,8 +16,7 @@ TP.availableCoords = {}
 TP.Visible = {
 	Main = false,
 	Save = false,
-	Replace = false,
-	Info = false,
+	Edit = false,
 }
 
 TP.ModifierKeys = {
@@ -158,14 +156,13 @@ function TP.ModuleInit()
 	--Let's create all our windows at once, instead of all throughout the code.
 	local WinName = nil
 	
-	--Teleporter Replace/Rename/Delete Window
-	WinName = TP.WinNames.Replace
+	--Waypoint Edit Window
+	WinName = TP.WinNames.Edit
 	GUI_NewWindow	(WinName,WI.x,WI.y,WI.width,WI.height,"",true)
 	
 	GUI_NewComboBox (WinName,"Waypoint:","gRepPoint","Waypoint","")
 	GUI_NewField	(WinName,"New Name:","gRepName","Waypoint")
 	GUI_NewButton	(WinName,"Get Target Name","TP.GetTargetName","Waypoint")
-	RegisterEventHandler("TP.GetTargetName", TP.GetTargetName)
 	
 	GUI_NewButton	(WinName,"Delete Waypoint","TPChangeWaypointDelete")
 	GUI_NewButton	(WinName,"Rename Waypoint","TPChangeWaypointRename")
@@ -174,7 +171,7 @@ function TP.ModuleInit()
 	
 	GUI_UnFoldGroup	(WinName,"Waypoint")
 	GUI_SizeWindow	(WinName,WI.width,200)
-	GUI_WindowVisible(WinName,TP.Visible.Replace)	
+	GUI_WindowVisible(WinName,TP.Visible.Edit)	
 	
 	--Teleporter Save Window
 	WinName = TP.WinNames.Save
@@ -209,7 +206,7 @@ function TP.ModuleInit()
 	
 	GUI_NewCheckbox	(WinName,"Auto-Record","gAutoRecord","Setting")
 	GUI_NewCheckbox	(WinName,"Include Mobs","gAutoRecordMobs","Setting")
-	GUI_NewComboBox	(WinName,"Port To:","gClickTeleport","Setting","Cursor,Target,None")
+	GUI_NewComboBox	(WinName,"Port To:","gClickTeleport","Setting","None,Cursor,Target")
 	GUI_NewComboBox	(WinName,"Port Buttons","gClickName1","Setting",teleKey1)
 	GUI_NewComboBox	(WinName,"+","gClickName2","Setting",teleKey2)
 	
@@ -227,8 +224,8 @@ function TP.ModuleInit()
 	GUI_NewButton	(WinName,"Up",		"TPMoveU","Move")
 
 	GUI_NewButton(TP.WinName,"Refresh","TP.Refresh")
-	GUI_NewButton(TP.WinName,"Replace / Rename / Delete", "TPToggleReplace")
-	GUI_NewButton(TP.WinName,"Save","TPToggleSave")
+	GUI_NewButton(TP.WinName,"Edit Waypoint", "TPToggleEdit")
+	GUI_NewButton(TP.WinName,"New Waypoint","TPToggleSave")
 	
 	GUI_SizeWindow(TP.WinName,WI.width,WI.height)
 	GUI_WindowVisible(TP.WinName, TP.Visible.Main)
@@ -394,7 +391,7 @@ function TP.ChangeWaypoint(event)
 	if (ValidTable(target)) then
 		tpos = shallowcopy(target.pos)
 	end
-	local WinName = "Teleporter Replace/Rename/Delete"
+	local WinName = TP.WinNames.Edit
 	
 	local oldCoordKey = 0
 	local oldCoord = {}
@@ -444,7 +441,7 @@ function TP.SaveWaypoint(event)
 	if (event == "Player") then
 		if (gSaveName ~= "") then
 			local ppos = shallowcopy(Player.pos)
-			local WinName = "Teleporter Save"
+			local WinName = TP.WinNames.Save
 			local savePos = {}
 			
 			savePos.name = gSaveName
@@ -482,7 +479,7 @@ end
 --**************************************************************************************************************************************
 function TP.GetTargetName()
 	local target = Player:GetTarget()
-	if (target ~= nil) then
+	if (target and target.name) then
 		gSaveName = target.name
 		gRepName = target.name
 	end
@@ -636,7 +633,7 @@ function TP.TargetPort()
 			GameHacks:TeleportToXYZ(tpos.x,tpos.y,tpos.z)
 			Player:SetFacingSynced(Player.pos.h)
 		end
-	else
+	elseif (gClickTeleport == "Cursor") then
 		if ((value1 == 0 or MeshManager:IsKeyPressed(value1)) and 
 			(value2 == 0 or MeshManager:IsKeyPressed(value2)) and
 			(not (value1 == 0 and value2 == 0))) then
@@ -710,7 +707,7 @@ end
 function TP.WindowToggle(event)
 	local window = string.gsub(event,"TPToggle","")
 	
-	if window == "Replace" then TP.UpdateWaypointList() end
+	if window == "Edit" then TP.UpdateWaypointList() end
 	GUI_WindowVisible(TP.WinNames[window],not TP.Visible[window])
 	TP.Visible[window] = not TP.Visible[window]
 end
@@ -739,8 +736,8 @@ function TP.HandleButtons( Event, Button )
 			TP.SaveWaypoint(string.gsub(Button,"TPSave",""))
 		elseif (string.find(Button,"TPPort") ~= nil) then
 			TP.Port(string.gsub(Button,"TPPort",""))
-		--elseif (string.sub(Button,1,3) == "TP.") then
-			--ExecuteFunction(Button)
+		elseif (string.sub(Button,1,3) == "TP.") then
+			ExecuteFunction(Button)
 		end
 	end
 end
