@@ -400,6 +400,7 @@ strings =
 		pvpTargetFive					= "Priority 5",
 		pvpAvoid						= "Avoidance",
 		pvpSpeedMatchPartner			= "Speed Match Partner",
+		pvpArena						= "PVP Arena",
 		
 		gatherMaps						= "Gather Maps",
         markerFields                    = "Marker Fields",
@@ -473,13 +474,13 @@ strings =
 		questMode						= "Quest",
 		removeMarker					= "Remove Marker",
 		deleteMarker					= "Delete Marker",
-    PartyGrind          = "Party Grind",
-    PartyLeader         = "Leader:",
-    GetPartyLeader      = "Target->Leader",
-    UseGamePartyLeader  = "Use Party Leader",
-    TargetIsCasting           = "Target Casting",
-    TargetCastingOnMe           = "Casting On Me",
-    TargetCastingTime           = "Casting Time >",
+		PartyGrind         				= "Party Grind",
+		PartyLeader         			= "Leader:",
+		GetPartyLeader      			= "Target->Leader",
+		UseGamePartyLeader  			= "Use Party Leader",
+		TargetIsCasting           		= "Target Casting",
+		TargetCastingOnMe           	= "Casting On Me",
+		TargetCastingTime           	= "Casting Time >",
         botanyMarker                    = "Botany Marker",
         miningMarker                    = "Mining Marker",
         grindMarker                     = "Grind Marker",
@@ -559,8 +560,21 @@ strings =
 		autoEquip					 	= "Auto-Equip",
 		idlePulseCount					= "Idle Count",
 		taskDelay						= "Task Delay (ms)",
-		huntLocationEditor				= "Hunt Location Editor",
-		monsterName						= "Monster Name",
+		eorzeaTime						= "Eorzea Time",
+		
+		teleporter 						= "Teleporter",
+		waypoint 						= "Waypoint",
+		newWaypoint 					= "New Waypoint",
+		editWaypoint					= "Edit Waypoint",
+		newName 						= "New Name",
+		deleteWaypoint 					= "Delete Waypoint",
+		renameWaypoint	 				= "Rename Waypoint",
+		getTargetName					= "Get Target Name",
+		saveAsTargetPos					= "Save @ Target POS",
+		saveAsPlayerPos					= "Save @ Player POS",
+		save							= "Save",
+		move							= "Move",
+		distance						= "Distance",
     },                                  
     ["cn"] =                            
     {                               
@@ -1155,8 +1169,7 @@ strings =
 		autoEquip					 	= "自动换装",
 		idlePulseCount					= "Idle Count",
 		taskDelay						= "Task Delay (ms)",
-		huntLocationEditor				= "Hunt Location Editor",
-		monsterName						= "Monster Name",
+		eorzeaTime						= "Eorzea Time",
 	},
     ["jp"] =
     {
@@ -1182,8 +1195,8 @@ strings =
 		checkChat						= "チャット警告",
 		randomfarmspot 					= "ランダム採集",
 		disabledrawing 					= "Disable Rendering",
-		killaggrononfateenemies 		= "Kill attacking None-Fate Enemies",
-		avoidAOE						= "Avoid AOE",
+		killaggrononfateenemies 					= "Kill attacking None-Fate Enemies",
+		avoidAOE						 = "Avoid AOE",
         -- mesher.lua
         meshManager                     = "３Dメッシュ管理", 	
 		activated                       = "実行中",
@@ -1704,8 +1717,7 @@ strings =
 		autoEquip					 	= "Auto-Equip",
 		idlePulseCount					= "Idle Count",
 		taskDelay						= "Task Delay (ms)",
-		huntLocationEditor				= "Hunt Location Editor",
-		monsterName						= "Monster Name",
+		eorzeaTime						= "Eorzea Time",
 	},   
     ["de"] =
     {
@@ -2254,8 +2266,7 @@ strings =
 		autoEquip					 	= "Auto-Equip",
 		idlePulseCount					= "Idle Count",
 		taskDelay						= "Task Delay (ms)",
-		huntLocationEditor				= "Hunt Location Editor",
-		monsterName						= "Monster Name",
+		eorzeaTime						= "Eorzea Time",
 	},     
     ["fr"] =
     {
@@ -2803,8 +2814,7 @@ strings =
 		autoEquip					 	= "Auto-Equip",
 		idlePulseCount					= "Idle Count",
 		taskDelay						= "Task Delay (ms)",
-		huntLocationEditor				= "Hunt Location Editor",
-		monsterName						= "Monster Name",
+		eorzeaTime						= "Eorzea Time",
 	},       
     ["ru"] =
     {
@@ -3352,8 +3362,7 @@ strings =
 		autoEquip					 	= "Auto-Equip",
 		idlePulseCount					= "Idle Count",
 		taskDelay						= "Task Delay (ms)",
-		huntLocationEditor				= "Hunt Location Editor",
-		monsterName						= "Monster Name",
+		eorzeaTime						= "Eorzea Time",
 	},    	
 
 }
