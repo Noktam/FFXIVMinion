@@ -60,7 +60,7 @@ function e_joinqueuepvp:execute()
     if not ControlVisible("ContentsFinder") then
         ActionList:Cast(33,0,10)
         ml_task_hub:ThisTask().windowTimer = Now() + 1500
-    elseif ( Now() > ml_task_hub:ThisTask().windowTimer ) then
+    elseif ( ControlVisible("ContentsFinder") and (Now() > ml_task_hub:ThisTask().windowTimer)) then
         PressDutyJoin()
         ml_task_hub:ThisTask().state = "WAITING_FOR_DUTY"
     end
@@ -87,18 +87,18 @@ function c_pressleave:evaluate()
 end
 function e_pressleave:execute()
 	-- reset pvp task state since it doesn't get terminated/reinstantiated
-    if (gPVPDelayLeave == "1" and ml_task_hub:ThisTask().leaveTimer == 0) then
-        ml_task_hub:ThisTask().leaveTimer = ml_global_information.Now + math.random(12000,18000)
-    elseif (gPVPDelayLeave == "0" or ml_global_information.Now > ml_task_hub:ThisTask().leaveTimer) then
-        ml_task_hub:ThisTask().state = "COMBAT_ENDED"
-        ml_task_hub:ThisTask().targetid = 0
-        ml_task_hub:ThisTask().startTimer = 0
-        ml_task_hub:ThisTask().leaveTimer = 0
-		ml_task_hub:ThisTask().enterTimer = 0
-        ml_task_hub:ThisTask().afkTimer = 0
+	ml_task_hub:ThisTask().state = "COMBAT_ENDED"
+	ml_task_hub:ThisTask().targetid = 0
+	ml_task_hub:ThisTask().startTimer = 0
+	ml_task_hub:ThisTask().leaveTimer = 0
+	ml_task_hub:ThisTask().enterTimer = 0
+	ml_task_hub:ThisTask().afkTimer = 0
+	Player:Stop()
+	ml_task_hub:ThisTask():ResetMarkerStatus()
 		
-        ml_task_hub:ThisTask().queueTimer = Now()
-        Player:Stop()
+    if (gPVPDelayLeave == "1" and ml_task_hub:ThisTask().leaveTimer == 0) then
+        ml_task_hub:ThisTask().leaveTimer = Now() + math.random(12000,18000)
+    elseif (gPVPDelayLeave == "0" or Now() > ml_task_hub:ThisTask().leaveTimer) then
         PressLeaveColosseum()
     end
 end
@@ -131,7 +131,7 @@ function c_startcombat:evaluate()
 	
 	if (ml_task_hub:ThisTask().state == "WAITING_FOR_COMBAT" and 
 		((MultiComp(Player.localmapid,"337,175,336,352") and TimeSince(ml_task_hub:ThisTask().enterTimer) > 62000) or
-		(Player.localmapid == 376 and TimeSince(ml_task_hub:ThisTask().enterTimer) > 122000))) then
+		(Player.localmapid == 376 and TimeSince(ml_task_hub:ThisTask().enterTimer) > 116000))) then
 		return true
 	end
 
@@ -260,7 +260,7 @@ function c_pvpdetectenemy:evaluate()
 		return false
 	end
 	
-	if (ml_task_hub:ThisTask().name == "LT_PVP" or Player.incombat) then
+	if (ml_task_hub:ThisTask().name == "LT_PVP") then
 		return false
 	end
     
@@ -268,7 +268,7 @@ function c_pvpdetectenemy:evaluate()
 	if (ValidTable(newTarget)) then
 		ml_task_hub:ThisTask().targetid = newTarget.id
 		ml_task_hub:ThisTask().targetTimer = Now()
-		return false
+		return true
 	end
     
     return false
@@ -333,20 +333,20 @@ function c_nextpvpmarker:evaluate()
 			if (marker == nil) then
 				ml_task_hub:ThisTask().filterLevel = false
 				marker = ml_marker_mgr.GetNextMarker(strings[gCurrentLanguage].pvpMarker, ml_task_hub:ThisTask().filterLevel)
-				d("marker was set in block 1, the default selection.")
 			end	
 		end
         
         -- last check if our time has run out
         if (marker == nil and ml_task_hub:ThisTask().atMarker) then
-            local time = ml_task_hub:ThisTask().currentMarker:GetTime()
-			if (time and time ~= 0 and TimeSince(ml_task_hub:ThisTask().markerTime) > time * 1000) then
-                ml_debug("Getting Next Marker, TIME IS UP!")
-                marker = ml_marker_mgr.GetNextMarker(strings[gCurrentLanguage].pvpMarker, ml_task_hub:ThisTask().filterLevel)
-				d("marker was set in block 2, because time was up.")
-            else
-                return false
-            end
+			if (ValidTable(ml_task_hub:ThisTask().currentMarker)) then
+				local expireTime = ml_task_hub:ThisTask().markerTime
+				if (Now() > expireTime) then
+					ml_debug("Getting Next Marker, TIME IS UP!")
+					marker = ml_marker_mgr.GetNextMarker(ml_task_hub:ThisTask().currentMarker:GetType(), ml_task_hub:ThisTask().filterLevel)
+				else
+					return false
+				end
+			end
         end
         
         if (ValidTable(marker)) then
@@ -373,8 +373,9 @@ function e_nextpvpmarker:execute()
     local markerPos = ml_task_hub:ThisTask().currentMarker:GetPosition()
     local markerType = ml_task_hub:ThisTask().currentMarker:GetType()
     newTask.pos = markerPos
-    newTask.range = math.random(0,30)
+    newTask.range = math.random(0,5)
 	newTask.use3d = true
+	newTask.remainMounted = true
     ml_task_hub:CurrentTask():AddSubTask(newTask)
 end
 
@@ -476,25 +477,37 @@ end
 c_pvpdead = inheritsFrom( ml_cause )
 e_pvpdead = inheritsFrom( ml_effect )
 c_pvpdead.timer = 0
-c_pvpdead.throttle = 5000
+c_pvpdead.throttle = 1000
 function c_pvpdead:evaluate()
 	if (Player.alive) then	
 		return false
 	end
 	
-    if (not Player.alive and c_pvpdead.timer == 0) then
-		c_pvpdead.timer = Now() + 7000 + (ml_task_hub:ThisTask().deadTimes * 5000)
-    end 
-	
-	if (not Player.alive and Now() > c_pvpdead.timer) then
+	if (not Player.alive and HasBuffs(Player,"148")) then
 		return true
+	end
+	
+	if (Player.localmapid == 376) then
+		if (not Player.alive and c_pvpdead.timer == 0) then
+			c_pvpdead.timer = Now() + 7000 + (ml_task_hub:ThisTask().deadTimes * 5000)
+		end 
+		
+		if (not Player.alive and Now() > c_pvpdead.timer) then
+			return true
+		end
 	end
 	
     return false
 end
 function e_pvpdead:execute()
-	PressYesNoCounter(true)
-	c_pvpdead.timer = 0
+	if (HasBuffs(Player,"148")) then
+		PressYesNo(true)
+		c_pvpdead.timer = 0
+	else
+		PressYesNoCounter(true)
+		c_pvpdead.timer = 0
+		ml_task_hub:ThisTask():ResetMarkerStatus()
+	end
 end
 
 function ffxiv_task_pvp:Init()
@@ -547,26 +560,49 @@ end
 
 -- custom process function for optimal performance
 function ffxiv_task_pvp:Process()
+	if (IsLoading() or ml_mesh_mgr.meshLoading) then
+		return false
+	end
+	
     -- only perform combat logic when we are in the wolves den
     if (MultiComp(Player.localmapid, "337,175,336,352,376") and Player.alive) then
         if (ml_task_hub:ThisTask().state == "COMBAT_STARTED") then
 			if (HasBuffs(Player,"2,3,13,149,280,397")) then
 				Player:Stop()
 			else
+				local markerPos = nil
+				if (ValidTable(ml_task_hub:ThisTask().currentMarker)) then
+					markerPos = ml_task_hub:ThisTask().currentMarker:GetPosition()
+				end
+				
 				local target = EntityList:Get(ml_task_hub:ThisTask().targetid)
+				local tpos = nil
+				if (ValidTable(target)) then
+					tpos = shallowcopy(target.pos)
+				end
+				
 				if (	TimeSince(ml_task_hub:ThisTask().targetTimer) > 1000 or
 						ml_task_hub:ThisTask().targetid == 0 or
-						(target ~= nil and (not target.alive or HasBuff(target.id,3) or HasBuff(target.id,397)))) 
+						not target or
+						(target and tpos and markerPos and Player.localmapid == 376 and (Distance3D(markerPos.x,markerPos.y,markerPos.z,tpos.x,tpos.y,tpos.z) > 50)) or
+						(target and (not target.alive or HasBuff(target.id,3) or HasBuff(target.id,397)))) 
 				then
 					local newTarget = GetPVPTarget()
 					if ValidTable(newTarget) and newTarget.id ~= ml_task_hub:ThisTask().targetid then
-						ml_task_hub:ThisTask().targetid = newTarget.id
+						if (Player.localmapid == 376 and markerPos) then
+							local ntpos = shallowcopy(newTarget.pos)
+							if ( Distance3D(markerPos.x,markerPos.y,markerPos.z,ntpos.x,ntpos.y,ntpos.z) < 50) then
+								ml_task_hub:ThisTask().targetid = newTarget.id
+								target = EntityList:Get(ml_task_hub:ThisTask().targetid)
+							end
+						else
+							ml_task_hub:ThisTask().targetid = newTarget.id
+							target = EntityList:Get(ml_task_hub:ThisTask().targetid)
+						end
 					end
 					ml_task_hub:ThisTask().targetTimer = Now()
 				end
 				
-				-- second try to cast if we're within range or a healer
-				target = EntityList:Get(ml_task_hub:ThisTask().targetid)
 				if ValidTable(target) then
 					if (Player.ismounted) then
 						Dismount()
@@ -599,8 +635,11 @@ function ffxiv_task_pvp:Process()
 						Player:SetFacing(pos.x,pos.y,pos.z)
 						SkillMgr.Cast( target )
 					end
-				elseif Player.role == 4 then
-					SkillMgr.Cast( Player, true )
+				else
+					ml_task_hub:ThisTask().targetid = 0
+					if Player.role == 4 then
+						SkillMgr.Cast( Player, true )
+					end
 				end
 			
 			end
@@ -619,6 +658,22 @@ function ffxiv_task_pvp:Process()
 	else
 		ml_debug("no elements in process table")
 	end
+end
+
+function GetPVPArenas()
+	local arenaList = ""
+	local order = function( t,a,b ) return (t[a].DutyListIndex < t[b].DutyListIndex) end
+	for i, arena in spairs(Duty:GetDutyList(),order) do
+		if (MultiComp(arena.id, "337,175,336,352,376")) then
+			if arenaList == "" then
+				arenaList = arena.name
+			else
+				arenaList = arenaList..","..arena.name
+			end
+		end
+	end
+
+	return arenaList
 end
 
 function GetPVPTargetTypes()
@@ -684,6 +739,7 @@ function ffxiv_task_pvp.UIInit()
 	GUI_NewField(winName,strings[gCurrentLanguage].markerTime,"gStatusMarkerTime",group )
 	
 	local group = GetString("settings")
+	--GUI_NewComboBox(winName,strings[gCurrentLanguage].pvpArena,"gPVPArena",group,GetPVPArenas())
     GUI_NewComboBox(winName,strings[gCurrentLanguage].pvpTargetOne,"gPVPTargetOne",group,"")
     GUI_NewComboBox(winName,strings[gCurrentLanguage].pvpTargetTwo,"gPVPTargetTwo",group,"")
 	GUI_NewComboBox(winName,strings[gCurrentLanguage].pvpTargetThree,"gPVPTargetThree",group,"")
@@ -751,6 +807,15 @@ function ffxiv_task_pvp.SetupMarkers()
 	ml_marker_mgr.RefreshMarkerNames()
 end
 
+function ffxiv_task_pvp:ResetMarkerStatus()
+	ml_global_information.currentMarker = false
+	self.currentMarker = false
+	ml_global_information.MarkerTime = 0
+	self.markerTime = 0
+	gStatusMarkerName = ""
+    self.atMarker = false
+end
+
 ffxiv_task_pvpavoid = inheritsFrom(ml_task)
 function ffxiv_task_pvpavoid.Create()
     local newinst = inheritsFrom(ffxiv_task_pvpavoid)
@@ -810,21 +875,3 @@ function ffxiv_task_pvpavoid:task_complete_execute()
 		Player:SetFacing(pos.x,pos.y,pos.z)
 	end
 end
-	
-function ffxiv_task_pvp.OnUpdate( Event, ticks ) 
-	if (ml_task_hub.shouldRun and ValidTable(ml_task_hub:RootTask())) then
-		if (TimeSince(ffxiv_task_pvp.lastTick) > 500) then
-			ffxiv_task_pvp.lastTick = ticks
-			if (ValidTable(ml_task_hub:RootTask().currentMarker)) then
-				local timesince = TimeSince(ml_global_information.MarkerTime)
-				local timeleft = ((ml_task_hub:RootTask().currentMarker:GetTime() * 1000) - timesince) / 1000
-				gStatusMarkerTime = tostring(round(timeleft, 1))
-			else
-				gStatusMarkerName = ""
-				gStatusMarkerTime = ""
-			end
-		end
-	end
-end
-
---RegisterEventHandler("Gameloop.Update", ffxiv_task_pvp.OnUpdate)
