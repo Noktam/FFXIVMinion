@@ -1019,10 +1019,8 @@ function c_usenavinteraction:evaluate()
 		[130] = { name = "Uldah Airstrip",
 			test = function()
 				if (Player.pos.y < 40 and gotoPos.y > 50) then
-					d("Need to move to airstrip area.")
 					return true
 				elseif (Player.pos.y > 50 and gotoPos.y < 40) then
-					d("Need to move from airstrip area.")
 					return true
 				end
 				return false
@@ -1046,10 +1044,8 @@ function c_usenavinteraction:evaluate()
 		[128] = { name = "Limsa Airstrip",
 			test = function()
 				if (Player.pos.y < 60 and gotoPos.y > 70) then
-					d("Need to move to airstrip area.")
 					return true
 				elseif (Player.pos.y > 70 and gotoPos.y < 60) then
-					d("Need to move from airstrip area.")
 					return true
 				end
 				return false
