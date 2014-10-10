@@ -435,41 +435,93 @@ function c_avoid:evaluate()
         return false
     end
 
-	c_avoid.target = deepcopy(target,true)
+	c_avoid.target = target
     return true
 end
 
-function e_avoid:execute() 
+function e_avoid:execute() 	
 	local target = c_avoid.target
-	local pos = Player.pos
+	local ppos = Player.pos
 	local epos = target.pos
-	local angle = AngleFromPos(pos, epos)
-	local angle2 = AngleFromPos(epos, pos)
-	local onMesh = false
-	local attempt = 0
 	local escapePoint
+
+	local h = ConvertHeading(ppos.h)
+	local eh = ConvertHeading(epos.h)
 	
+	local mobRight = ConvertHeading((eh - (math.pi/2)))%(2*math.pi)
+	local mobLeft = ConvertHeading((eh + (math.pi/2)))%(2*math.pi)
+	local mobRear = ConvertHeading((eh - (math.pi)))%(2*math.pi)
+	
+	local playerRight = ConvertHeading((h - (math.pi/2)))%(2*math.pi)
+	local playerLeft = ConvertHeading((h + (math.pi/2)))%(2*math.pi)
+	
+	local options1 = {
+		GetPosFromDistanceHeading(epos, target.hitradius + 13, mobRear),
+		GetPosFromDistanceHeading(epos, target.hitradius + 11, mobRight),
+		GetPosFromDistanceHeading(epos, target.hitradius + 11, mobLeft),
+	}
+	
+	local options2 = {
+		GetPosFromDistanceHeading(ppos, 8, h),
+		GetPosFromDistanceHeading(ppos, 8, playerRight),
+		GetPosFromDistanceHeading(ppos, 8, playerLeft),
+	}
 	
 	if (target.castinginfo.channeltargetid == target.id) then
 		-- If the casting target is the entity's own ID, it is a self-centered aoe, so either run away or move very far left and right.
-		escapePoint = (math.random(0,1) == 0 and FindPointOnCircle(epos, angle, (target.hitradius + 13)) or FindPointLeftRight(epos, angle2, (target.hitradius + 13), false))
+		local viable = {}
+		local i = 0
+		for _, pos in pairs(options1) do
+			i = i + 1
+			local p,dist = NavigationManager:GetClosestPointOnMesh(pos)
+			if (p and dist <= 20) then
+				viable[i] = p
+			end
+		end
+		
+		local closest = nil
+		local closestDistance = 99
+		for _, pos in pairs(viable) do
+			local distance = Distance3D(pos.x,pos.y,pos.z,ppos.x,ppos.y,ppos.z)
+			if (distance < closestDistance) then
+				closestDistance = distance
+				closest = pos
+			end
+		end
+		
+		escapePoint = closest
 	else
 		-- If the casting target is not the entity's own ID, it's on us, so move left or right to dodge it.
-		escapePoint = FindPointLeftRight(pos, angle, 8, true)
+		local viable = {}
+		local i = 0
+		for _, pos in pairs(options2) do
+			i = i + 1
+			local p,dist = NavigationManager:GetClosestPointOnMesh(pos)
+			if (p and dist <= 20) then
+				viable[i] = p
+			end
+		end
+		
+		local closest = nil
+		local closestDistance = 99
+		for _, pos in pairs(viable) do
+			local distance = Distance3D(pos.x,pos.y,pos.z,ppos.x,ppos.y,ppos.z)
+			if (distance < closestDistance) then
+				closestDistance = distance
+				closest = pos
+			end
+		end
+		
+		escapePoint = closest
 	end
 	
-	local p,dist = NavigationManager:GetClosestPointOnMesh(escapePoint)
-	if (p ~= nil and dist <= 25) then
-		local newTask = ffxiv_task_avoid.Create()
-		newTask.pos = p
-		newTask.targetid = target.id
-		newTask.interruptCasting = true
-		newTask.maxTime = tonumber(target.castinginfo.casttime) + 500
-		-- set preserveSubtasks = true so that the current kill task is not deleted
-		-- we want it to complete normally after the avoid task completes
-		ml_task_hub:ThisTask().preserveSubtasks = true
-		ml_task_hub:Add(newTask, IMMEDIATE_GOAL, TP_IMMEDIATE)
-	end
+	local newTask = ffxiv_task_avoid.Create()
+	newTask.pos = escapePoint
+	newTask.targetid = target.id
+	newTask.interruptCasting = true
+	newTask.maxTime = tonumber(target.castinginfo.casttime)
+	ml_task_hub:ThisTask().preserveSubtasks = true
+	ml_task_hub:Add(newTask, IMMEDIATE_GOAL, TP_IMMEDIATE)
 end
 
 ---------------------------------------------------------------------------------------------
@@ -677,6 +729,11 @@ e_teleporttomap.aethid = 0
 e_teleporttomap.destMap = 0
 function c_teleporttomap:evaluate()
 	if (gUseAetherytes == "0") then
+		return false
+	end
+	
+	local el = EntityList("alive,attackable,onmesh,targetingme")
+	if (ValidTable(el)) then
 		return false
 	end
 	
@@ -914,6 +971,7 @@ c_usenavinteraction = inheritsFrom( ml_cause )
 e_usenavinteraction = inheritsFrom( ml_effect)
 e_usenavinteraction.task = nil
 function c_usenavinteraction:evaluate()
+	local myPos = shallowcopy(Player.pos)
 	local gotoPos = ml_task_hub:ThisTask().pos
 	
 	requiresTransport = {
@@ -938,6 +996,37 @@ function c_usenavinteraction:evaluate()
 					local newTask = ffxiv_nav_interact.Create()
 					newTask.pos = {x = 220.899, y = 1.7, z = 257.399}
 					newTask.uniqueid = 1003587
+					ml_task_hub:CurrentTask():AddSubTask(newTask)
+				end
+			end,
+		},
+		[156] = { name = "Mor Dhona - Cid's Workshop",
+			test = function()
+				if ((myPos.y < -150 and myPos.x < 12 and myPos.x > -10 and myPos.z < 16.5 and myPos.z > -14.1) and 
+					not (gotoPos.y < -150 and gotoPos.x < 12 and gotoPos.x > -10 and gotoPos.z < 16.5 and gotoPos.z > -14.1)) then
+					--d("Need  to move from west to east.")
+					return true
+				elseif (not (myPos.y < -150 and myPos.x < 12 and myPos.x > -10 and myPos.z < 16.5 and myPos.z > -14.1) and 
+						(gotoPos.y < -150 and gotoPos.x < 12 and gotoPos.x > -10 and gotoPos.z < 16.5 and gotoPos.z > -14.1)) then
+					--d("Need  to move from west to east.")
+					return true
+				end
+				return false
+			end,
+			reaction = function()
+				if ((myPos.y < -150 and myPos.x < 12 and myPos.x > -10 and myPos.z < 16.5 and myPos.z > -14.1) and 
+					not (gotoPos.y < -150 and gotoPos.x < 12 and gotoPos.x > -10 and gotoPos.z < 16.5 and gotoPos.z > -14.1)) 
+				then
+					local newTask = ffxiv_nav_interact.Create()
+					newTask.pos = {x = .70, y = -157, z = 16.2}
+					newTask.uniqueid = 2002502
+					ml_task_hub:CurrentTask():AddSubTask(newTask)
+				elseif (not (myPos.y < -150 and myPos.x < 12 and myPos.x > -10 and myPos.z < 16.5 and myPos.z > -14.1) and 
+						(gotoPos.y < -150 and gotoPos.x < 12 and gotoPos.x > -10 and gotoPos.z < 16.5 and gotoPos.z > -14.1)) 
+				then
+					local newTask = ffxiv_nav_interact.Create()
+					newTask.pos = {x = 21.9, y = 20.7, z = -682}
+					newTask.uniqueid = 1006530
 					ml_task_hub:CurrentTask():AddSubTask(newTask)
 				end
 			end,
