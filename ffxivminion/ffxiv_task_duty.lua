@@ -766,9 +766,10 @@ function c_deadduty:evaluate()
         return true
     end 
 	
-	if ((Player.alive) and Now() > e_deadduty.reviveTimer and not IsLoading()) then
+	if ((Player.alive) and Now() > e_deadduty.reviveTimer and e_deadduty.reviveTimer > 0 and not IsLoading()) then
 		return true
 	end
+	
     return false
 end
 function e_deadduty:execute()
@@ -800,12 +801,12 @@ function e_deadduty:execute()
 				local lpos = leader.pos
 				GameHacks:TeleportToXYZ(lpos.x+1, lpos.y, lpos.z)
 				Player:SetFacingSynced(Player.pos.h)
-				e_deadduty.justRevived = false
+				e_deadduty.reviveTimer = 0
 			else
 				local lpos = ffxiv_task_duty.leaderLastPos
 				GameHacks:TeleportToXYZ(lpos.x, lpos.y, lpos.z)
 				Player:SetFacingSynced(lpos.h)
-				e_deadduty.justRevived = false
+				e_deadduty.reviveTimer = 0
 				ffxiv_task_duty.leaderLastPos = {}
 				ml_task_hub:ThisTask().state = "DUTY_NEXTENCOUNTER"
 			end
