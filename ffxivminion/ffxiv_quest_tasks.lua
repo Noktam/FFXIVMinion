@@ -230,7 +230,7 @@ function ffxiv_quest_complete:Init()
     self:add( ke_questHandover, self.process_elements)
 
 	local ke_questComplete = ml_element:create( "QuestComplete", c_questcomplete, e_questcomplete, 15 )
-    self:add( ke_questComplete, self.process_elements)	
+    self:add( ke_questComplete, self.overwatch_elements)	
 	
 	local ke_questSelectConvIndex = ml_element:create( "QuestSelectConvIndex", c_questselectconvindex, e_questselectconvindex, 12 )
     self:add( ke_questSelectConvIndex, self.process_elements)
