@@ -82,7 +82,6 @@ function c_findgatherable:evaluate()
     return false
 end
 function e_findgatherable:execute()
-    ml_debug( "Getting new gatherable target" )
     local minlevel = 1
     local maxlevel = 50
     if (ValidTable(ml_task_hub:CurrentTask().currentMarker) and
@@ -91,6 +90,8 @@ function e_findgatherable:execute()
 		minlevel = ml_task_hub:CurrentTask().currentMarker:GetMinLevel()
 		maxlevel = ml_task_hub:CurrentTask().currentMarker:GetMaxLevel()
     end
+	
+	ffxiv_task_gather.gatherStarted = false
     
     local gatherable = GetNearestGatherable(minlevel,maxlevel)
     if (gatherable ~= nil) then
@@ -489,18 +490,11 @@ function c_nextgatherlocation:evaluate()
 				[AddHours(ffxiv_task_gather.location.hour,2)] = true,
 			}
 			
-			d(tostring(SubtractHours(ffxiv_task_gather.location.hour,1)))
-			d(tostring(ffxiv_task_gather.location.hour))
-			d(tostring(AddHours(ffxiv_task_gather.location.hour,1)))
-			d(tostring(AddHours(ffxiv_task_gather.location.hour,2)))
-			
 			local overdue = true
 			if (gatherableWindow[eTime.hour]) then
 				overdue = false
 			end
 			
-			d("reset condition1 = "..tostring(ffxiv_task_gather.gatherStarted))
-			d("reset condition2 = "..tostring(overdue))
 			if (ffxiv_task_gather.gatherStarted or overdue) then
 				ffxiv_task_gather.gatherStarted = false
 				ffxiv_task_gather.unspoiledGathered = true
@@ -637,7 +631,7 @@ function e_nextgatherlocation:execute()
 			return
 		end
 		
-		if (ml_task_hub:CurrentTask().name ~= "LT_TELEPORT" and ActionIsReady(5)) then
+		if (ActionIsReady(5)) then
 			Player:Teleport(location.teleport)
 			
 			local newTask = ffxiv_task_teleport.Create()
@@ -651,7 +645,7 @@ function e_nextgatherlocation:execute()
 				ffxiv_task_gather.gatherStarted = false
 				d("Arrived at location ["..location.name.."], using aetheryte teleport.")
 			end
-			ml_task_hub:CurrentTask():AddSubTask(newTask)
+			ml_task_hub:Add(newTask, IMMEDIATE_GOAL, TP_IMMEDIATE)
 		end
 	else
 		ffxiv_task_gather.location = location
@@ -673,7 +667,7 @@ function c_gather:evaluate()
 	local node = EntityList:Get(ml_task_hub:CurrentTask().gatherid)
     if (node and node.cangather and node.distance2d <= 2.5) then
 		local markerType = ml_task_hub:ThisTask().currentMarker:GetType()
-		if (markerType == GetString("unspoiledMarker") or markerType == GetString("botanyMarker") or markerType == GetString("miningMarker")) then
+		if (markerType == GetString("unspoiledMarker")) then
 			local requiredGP = tonumber(ml_task_hub:ThisTask().currentMarker:GetFieldValue(strings[gCurrentLanguage].minimumGP)) or 0
 			if (not ffxiv_task_gather.gatherStarted) then
 				if (Player.gp.current < requiredGP) then
@@ -682,8 +676,22 @@ function c_gather:evaluate()
 							local newTask = ffxiv_task_useitem.Create()
 							newTask.itemid = 6141
 							ml_task_hub:CurrentTask():AddSubTask(newTask)
+							return false
 						end
 					end
+					return false
+				else
+					return true
+				end
+			else
+				return true
+			end
+		elseif markerType == GetString("botanyMarker") or markerType == GetString("miningMarker") then
+			if (not ffxiv_task_gather.gatherStarted) then
+				if (gGatherUseCordials == "1" and Player.gp.percent <= 30 and ItemIsReady(6141)) then
+					local newTask = ffxiv_task_useitem.Create()
+					newTask.itemid = 6141
+					ml_task_hub:CurrentTask():AddSubTask(newTask)
 					return false
 				else
 					return true

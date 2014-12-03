@@ -216,9 +216,9 @@ ffxiv_nav_data =
 		{
 			cost = 5,
 			gates = {
-				{x = 117.911911,	z = -762.726074,	y = 30.792555,	h = 2.319864},
+				{x = 124.911911,	z = -770.00,	y = 31.45,	h = 2.35},
 			},
-		}
+		},
 	},
 	[341] = 
 	{
@@ -409,16 +409,6 @@ ffxiv_nav_data =
 			},
 		}
 	},
-	[156] = 
-	{
-		[155] =
-		{
-			cost = 5,
-			gates = {
-				{x = 118.180618,	z = -762.673767,	y = 30.789742,	h = 2.301012},
-			}
-		}
-	},
 	[128] =
 	{
 		[129] =
@@ -480,6 +470,7 @@ ffxiv_nav_data =
 		[138] =
 		{
 			cost = 3,
+			requiredlevel = 15,
 			gates = {
 				{x = -190.834, y = 1, z = 210.829, h = -1, b = 1000868, i = 1 },
 			},
@@ -487,6 +478,7 @@ ffxiv_nav_data =
 		[137] =
 		{
 			cost = 3,
+			requiredlevel = 30,
 			gates = {
 				{x = -190.834, y = 1, z = 210.829, h = -1, b = 1000868, i = 2 },
 			},
@@ -559,8 +551,9 @@ ffxiv_nav_data =
 		[129] =
 		{
 			cost = 3,
+			requiredlevel = 30,
 			gates = {
-				{x = 606.901, y = 11.6, z = 391.991, h = -1, b = 1003585},
+				{x = 606.901, y = 11.6, z = 391.991, h = -1, b = 1003585, i = 1},
 			},
 		},
 		[134] =
@@ -591,13 +584,15 @@ ffxiv_nav_data =
 		[129] =
 		{
 			cost = 3,
+			requiredlevel = 15,
 			gates = {
-				{x = 318.314, y = -36, z = 351.376, h = -1, b = 1003584, i = 1 },
+				{x = 318.314, y = -36, z = 351.376, h = -1, b = 1003584, i = 1},
 			},
 		},
 		[135] =
 		{
 			cost = 3,
+			requiredlevel = 15,
 			gates = {
 				{x = 318.314, y = -36, z = 351.376, h = -1, b = 1003584, i = 2 },
 			},
@@ -674,3 +669,7 @@ ffxiv_nav_data =
 	},
 	
 }
+
+-- set reference for mesh mgr
+ml_mesh_mgr.navData = ffxiv_nav_data
+ml_mesh_mgr.SetupNavNodes()

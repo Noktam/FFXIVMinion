@@ -283,12 +283,13 @@ function e_readyduty:execute()
 	ml_task_hub:ThisTask().state = "DUTY_NEW" 
 	ml_task_hub:ThisTask().joinTimer = Now() + 2000
 end
-			
+
 c_leaveduty = inheritsFrom( ml_cause )
 e_leaveduty = inheritsFrom( ml_effect )
 function c_leaveduty:evaluate()
-	if ( OnDutyMap() and not PartyInCombat() and Now() > ml_task_hub:ThisTask().leaveTimer) then
+	if ( OnDutyMap() and not PartyInCombat() and not Inventory:HasLoot() and Now() > ml_task_hub:ThisTask().leaveTimer) then
 		if	(DutyLeaderLeft() or
+			Quest:IsQuestRewardDialogOpen() or
 			(IsDutyLeader() and (ml_task_hub:ThisTask().state == "DUTY_EXIT"))) then
 			return true
 		end
@@ -297,16 +298,21 @@ function c_leaveduty:evaluate()
 	return false
 end
 function e_leaveduty:execute()
-	if not ControlVisible("ContentsFinder") then
-		Player:Stop()
-        ActionList:Cast(33,0,10)
+	if (Quest:IsQuestRewardDialogOpen()) then
+		Quest:CompleteQuestReward()
 		ml_task_hub:ThisTask().leaveTimer = Now() + 2000
-    elseif ControlVisible("ContentsFinder") and not ControlVisible("SelectYesno") then
-        PressDutyJoin()
-		ml_task_hub:ThisTask().leaveTimer = Now() + 2000
-	elseif ControlVisible("ContentsFinder") and ControlVisible("SelectYesno") then
-        PressYesNo(true)
-    end
+	else
+		if not ControlVisible("ContentsFinder") then
+			Player:Stop()
+			ActionList:Cast(33,0,10)
+			ml_task_hub:ThisTask().leaveTimer = Now() + 2000
+		elseif ControlVisible("ContentsFinder") and not ControlVisible("SelectYesno") then
+			PressDutyJoin()
+			ml_task_hub:ThisTask().leaveTimer = Now() + 2000
+		elseif ControlVisible("ContentsFinder") and ControlVisible("SelectYesno") then
+			PressYesNo(true)
+		end
+	end
 end
 
 c_changeleader = inheritsFrom( ml_cause )
@@ -354,15 +360,15 @@ end
 c_lootcheck = inheritsFrom( ml_cause )
 e_lootcheck = inheritsFrom( ml_effect )
 function c_lootcheck:evaluate()
-    if (not Inventory:HasLoot() or IsDutyLeader()) then
-        return false
+    if (Inventory:HasLoot()) then
+        return true
     end	
 	
-    return true
+    return false
 end
 function e_lootcheck:execute()     
-	local newTask = ffxiv_task_loot.Create()
-	ml_task_hub:CurrentTask():AddSubTask(newTask)
+	local newTask = ffxiv_task_lootroll.Create()
+	ml_task_hub:Add(newTask, IMMEDIATE_GOAL, TP_IMMEDIATE)
 end
 
 function ffxiv_task_duty:ProcessOverWatch()
@@ -390,8 +396,8 @@ function c_dutyidle:evaluate()
 	(IsPartyLeader() and ml_task_hub:ThisTask().state == "DUTY_ENTER" and Now() > ml_task_hub:ThisTask().joinTimer))
 end
 function e_dutyidle:execute()
-	ml_error("Stuck idle in task "..ml_task_hub:ThisTask().name.." with state "..ml_task_hub:ThisTask().state)
-	ml_error("Attempting to recover from error.")
+	ml_debug("Stuck idle in task "..ml_task_hub:ThisTask().name.." with state "..ml_task_hub:ThisTask().state)
+	ml_debug("Attempting to recover from error.")
 	ml_task_hub:ThisTask():DeleteSubTasks()
 	ml_task_hub:ThisTask().state = ""
 end
@@ -401,7 +407,7 @@ function ffxiv_task_duty:Process()
 		return false
 	end
 	
-	if (IsDutyLeader() and OnDutyMap()) then
+	if (IsDutyLeader() and OnDutyMap() and not Inventory:HasLoot()) then
 		if (self.state == "DUTY_ENTER") then
 			local encounters = ffxiv_task_duty.dutyInfo["Encounters"]
 			if (ValidTable(encounters)) then
@@ -488,10 +494,7 @@ function ffxiv_task_duty:Process()
 end
 
 function ffxiv_task_duty:Init()
-    --init Process() cnes
-	--local ke_resetState = ml_element:create( "ResetState", c_resetstate, e_resetstate, 9 )
-    --self:add(ke_resetState, self.overwatch_elements)
-	
+    --init Process() cnes		
 	local ke_dutyIdle = ml_element:create( "DutyIdle", c_dutyidle, e_dutyidle, 40 )
     self:add(ke_dutyIdle, self.overwatch_elements)
 	
@@ -505,7 +508,7 @@ function ffxiv_task_duty:Init()
     self:add( ke_assistleaderduty, self.overwatch_elements)
 	
 	local ke_pressConfirm = ml_element:create( "PressConfirm", c_pressconfirm, e_pressconfirm, 15 )
-    self:add(ke_pressConfirm, self.overwatch_elements)
+    self:add(ke_pressConfirm, self.overwatch_elements)	
 	
 	local ke_lootcheck = ml_element:create( "Loot", c_lootcheck, e_lootcheck, 19 )--minion only
     self:add( ke_lootcheck, self.process_elements)
@@ -541,8 +544,8 @@ function ffxiv_task_duty.UIInit()
 	if (Settings.FFXIVMINION.gResetDutyTimer == nil) then
         Settings.FFXIVMINION.gResetDutyTimer = 60
     end
-	if (Settings.FFXIVMINION.gLootOption == nil) then
-        Settings.FFXIVMINION.gLootOption = "All"
+	if (Settings.FFXIVMINION.gLootOption == nil or Settings.FFXIVMINION.gLootOption == "All") then
+        Settings.FFXIVMINION.gLootOption = "Any"
     end
 	if (Settings.FFXIVMINION.gUseTelecast == nil) then
         Settings.FFXIVMINION.gUseTelecast = "1"
@@ -692,10 +695,6 @@ function OnDutyMap()
 end
 
 function PartyInCombat()
-	if (Player.hasaggro) then
-		return true
-	end
-	
 	local party = EntityList.myparty
 	if (ValidTable(party)) then
 		for i, member in pairs(party) do
@@ -755,33 +754,33 @@ end
 c_deadduty = inheritsFrom( ml_cause )
 e_deadduty = inheritsFrom( ml_effect )
 c_deadduty.leader = {}
-e_deadduty.reviveTimer = 0
+e_deadduty.justRevived = false
 function c_deadduty:evaluate()
 	local leader = GetDutyLeader()
 	if (leader) then
 		c_deadduty.leader = leader
 	end
 	
-    if ((not Player.alive) and ControlVisible("SelectYesno") and OnDutyMap()) then --FFXIV.REVIVESTATE.DEAD & REVIVING
+    if ((Player.revivestate == 1 or Player.revivestate == 2) and not e_deadduty.justRevived and OnDutyMap()) then --FFXIV.REVIVESTATE.DEAD & REVIVING
         return true
     end 
 	
-	if ((Player.alive) and Now() > e_deadduty.reviveTimer and e_deadduty.reviveTimer > 0 and not IsLoading()) then
+	if (e_deadduty.justRevived) then
 		return true
 	end
-	
+
     return false
 end
 function e_deadduty:execute()
     local leader = c_deadduty.leader
 	
-	if (not Player.alive) then
+	if (Player.revivestate == 2) then
 		-- try raise first
 		if(PressYesNo(true)) then
 			if (IsDutyLeader()) then
 				ffxiv_task_duty.leaderLastPos = Player.pos
 			end
-			e_deadduty.reviveTimer = Now() + 4000
+			e_deadduty.justRevived = true
 			return
 		end
 		-- press ok
@@ -789,24 +788,28 @@ function e_deadduty:execute()
 			if (IsDutyLeader()) then
 				ffxiv_task_duty.leaderLastPos = Player.pos
 			end
-			e_deadduty.reviveTimer = Now() + 4000
+			e_deadduty.justRevived = true
 			return
 		end
 	end
 	
 	if (e_deadduty.justRevived) then
+		if (IsLoading() or Player.hp.current == 0 or Player.revivestate == 3) then
+			return 
+		end
+		
 		if (gTeleport == "1") then
 			--d("dead, stay close")
 			if (not IsDutyLeader()) then
 				local lpos = leader.pos
 				GameHacks:TeleportToXYZ(lpos.x+1, lpos.y, lpos.z)
 				Player:SetFacingSynced(Player.pos.h)
-				e_deadduty.reviveTimer = 0
+				e_deadduty.justRevived = false
 			else
 				local lpos = ffxiv_task_duty.leaderLastPos
 				GameHacks:TeleportToXYZ(lpos.x, lpos.y, lpos.z)
 				Player:SetFacingSynced(lpos.h)
-				e_deadduty.reviveTimer = 0
+				e_deadduty.justRevived = false
 				ffxiv_task_duty.leaderLastPos = {}
 				ml_task_hub:ThisTask().state = "DUTY_NEXTENCOUNTER"
 			end

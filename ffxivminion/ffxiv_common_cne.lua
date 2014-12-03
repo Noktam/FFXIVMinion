@@ -404,7 +404,7 @@ function c_avoid:evaluate()
 					local epos = shallowcopy(e.pos)
 					local distance = Distance3D(Player.pos.x, Player.pos.y, Player.pos.z, epos.x, epos.y, epos.z)
 					
-					if not (e.castinginfo.casttime < 1.5 
+					if not (e.castinginfo.casttime < 1.3 
 						or (distance > 20 and e.castinginfo.channeltargetid == e.id) 
 						or (e.castinginfo.channeltargetid ~= e.id and e.targetid ~= Player.id)
 						or (e.level ~= nil and e.level ~= 0 and plevel > e.level + 7)) then
@@ -429,7 +429,7 @@ function c_avoid:evaluate()
 	local epos = target.pos
 	local distance = Distance3D(Player.pos.x, Player.pos.y, Player.pos.z, epos.x, epos.y, epos.z)
 	--Check to see if our current target is casting on us.
-    if (target.castinginfo.casttime < 1.5 
+    if (target.castinginfo.casttime < 1.3
 		or (distance > 15 and target.castinginfo.channeltargetid == target.id) 
 		or (target.castinginfo.channeltargetid ~= target.id and target.targetid ~= Player.id)) then
         return false
@@ -451,14 +451,35 @@ function e_avoid:execute()
 	local mobRight = ConvertHeading((eh - (math.pi/2)))%(2*math.pi)
 	local mobLeft = ConvertHeading((eh + (math.pi/2)))%(2*math.pi)
 	local mobRear = ConvertHeading((eh - (math.pi)))%(2*math.pi)
+	local mobFrontLeft = ConvertHeading((eh + (math.pi * .30)))%(2*math.pi)
+	local mobFrontRight = ConvertHeading((eh - (math.pi * .30)))%(2*math.pi)
 	
 	local playerRight = ConvertHeading((h - (math.pi/2)))%(2*math.pi)
 	local playerLeft = ConvertHeading((h + (math.pi/2)))%(2*math.pi)
+	local playerRearLeft = ConvertHeading((h + (math.pi * .65)))%(2*math.pi)
+	local playerRearRight = ConvertHeading((h - (math.pi * .65)))%(2*math.pi)
+	local playerRear = ConvertHeading((h - (math.pi)))%(2*math.pi)
+	
+	local dodgeDist = 0
+	if (target.hitradius < 2) then
+		dodgeDist = 9
+	elseif (target.hitradius >= 2 and target.hitradius < 3) then
+		dodgeDist = 11
+	else
+		dodgeDist = 14
+	end
+	
+	local rangeDist = nil
+	if (ml_global_information.AttackRange > 5) then
+		rangeDist = Distance3D(ppos.x,ppos.y,ppos.z,epos.x,epos.y,epos.z)		
+	else
+		rangeDist = target.hitradius + 1
+	end
 	
 	local options1 = {
-		GetPosFromDistanceHeading(epos, target.hitradius + 13, mobRear),
-		GetPosFromDistanceHeading(epos, target.hitradius + 11, mobRight),
-		GetPosFromDistanceHeading(epos, target.hitradius + 11, mobLeft),
+		GetPosFromDistanceHeading(epos, rangeDist, mobRear),
+		GetPosFromDistanceHeading(epos, rangeDist, mobRight),
+		GetPosFromDistanceHeading(epos, rangeDist, mobLeft),
 	}
 	
 	local options2 = {
@@ -467,14 +488,33 @@ function e_avoid:execute()
 		GetPosFromDistanceHeading(ppos, 8, playerLeft),
 	}
 	
+	local options3 = {
+		GetPosFromDistanceHeading(epos, dodgeDist, mobRear),
+		GetPosFromDistanceHeading(epos, dodgeDist, mobRight),
+		GetPosFromDistanceHeading(epos, dodgeDist, mobLeft),
+		GetPosFromDistanceHeading(epos, dodgeDist, mobFrontLeft),
+		GetPosFromDistanceHeading(epos, dodgeDist, mobFrontRight),
+		GetPosFromDistanceHeading(epos, dodgeDist + 3, playerRear),
+	}
+	
+	local maxTime = 0
 	if (target.castinginfo.channeltargetid == target.id) then
+		local optionTable = nil
+		if (ffxiv_aoe_data.circle[target.castinginfo.channelingid]) then
+			optionTable = options3
+			maxTime = tonumber(target.castinginfo.casttime)
+		else
+			optionTable = options1
+			maxTime = 0
+		end
+		
 		-- If the casting target is the entity's own ID, it is a self-centered aoe, so either run away or move very far left and right.
 		local viable = {}
 		local i = 0
-		for _, pos in pairs(options1) do
+		for _, pos in pairs(optionTable) do
 			i = i + 1
 			local p,dist = NavigationManager:GetClosestPointOnMesh(pos)
-			if (p and dist <= 20) then
+			if (p and dist <= 5) then
 				viable[i] = p
 			end
 		end
@@ -492,12 +532,13 @@ function e_avoid:execute()
 		escapePoint = closest
 	else
 		-- If the casting target is not the entity's own ID, it's on us, so move left or right to dodge it.
+		maxTime = tonumber(target.castinginfo.casttime)
 		local viable = {}
 		local i = 0
 		for _, pos in pairs(options2) do
 			i = i + 1
 			local p,dist = NavigationManager:GetClosestPointOnMesh(pos)
-			if (p and dist <= 20) then
+			if (p and dist <= 5) then
 				viable[i] = p
 			end
 		end
@@ -515,13 +556,18 @@ function e_avoid:execute()
 		escapePoint = closest
 	end
 	
-	local newTask = ffxiv_task_avoid.Create()
-	newTask.pos = escapePoint
-	newTask.targetid = target.id
-	newTask.interruptCasting = true
-	newTask.maxTime = tonumber(target.castinginfo.casttime)
-	ml_task_hub:ThisTask().preserveSubtasks = true
-	ml_task_hub:Add(newTask, IMMEDIATE_GOAL, TP_IMMEDIATE)
+	if (ValidTable(escapePoint)) then
+		local moveDist = Distance3D(ppos.x,ppos.y,ppos.z,escapePoint.x,escapePoint.y,escapePoint.z)
+		if (moveDist > 1.5) then
+			local newTask = ffxiv_task_avoid.Create()
+			newTask.pos = escapePoint
+			newTask.targetid = target.id
+			newTask.interruptCasting = true
+			newTask.maxTime = maxTime
+			ml_task_hub:ThisTask().preserveSubtasks = true
+			ml_task_hub:Add(newTask, IMMEDIATE_GOAL, TP_IMMEDIATE)
+		end
+	end
 end
 
 
@@ -717,6 +763,9 @@ end
 function e_transportgate:execute()
 	local gateDetails = e_transportgate.details
 	local newTask = ffxiv_nav_interact.Create()
+	if (gTeleport == "1") then
+		newTask.useTeleport = true
+	end
 	newTask.pos = gateDetails.pos
 	newTask.uniqueid = gateDetails.uniqueid
 	newTask.conversationIndex = gateDetails.conversationIndex
@@ -773,7 +822,7 @@ function c_teleporttomap:evaluate()
 	end
 	
 	local teleport = ActionList:Get(5)
-	if (not teleport) then
+	if (not teleport or Player.castinginfo.channelingid == 5 or Player.castinginfo.castingid == 5) then
 		return false
 	end
 	
@@ -803,7 +852,7 @@ function c_teleporttomap:evaluate()
 			local mapid = nil
             for _, node in pairsByKeys(ml_nav_manager.currPath) do
                 if (node.id ~= Player.localmapid) then
-					local map, aeth = GetAetheryteByMapID(node.id)
+					local map,aeth = GetAetheryteByMapID(node.id, ml_task_hub:ThisTask().pos)
                     if (aeth) then
 						mapid = map
 						aethid = aeth
@@ -1187,6 +1236,29 @@ function c_usenavinteraction:evaluate()
 					newTask.pos = {x = -8.922, y = 91.5, z = -15.193}
 					newTask.uniqueid = 1003583
 					newTask.conversationIndex = 1
+					ml_task_hub:CurrentTask():AddSubTask(newTask)
+				end
+			end,
+		},
+		[212] = { name = "Waking Sands",
+			test = function()
+				if ((myPos.x < 23.85 and myPos.x > -15.46) and not (gotoPos.x < 23.85 and gotoPos.x > -15.46)) then
+					return true
+				elseif (not (myPos.x < 23.85 and myPos.x > -15.46) and (gotoPos.x < 23.85 and gotoPos.x > -15.46 )) then
+					return true
+				end
+				return false
+			end,
+			reaction = function()
+				if ((myPos.x < 23.85 and myPos.x > -15.46) and not (gotoPos.x < 23.85 and gotoPos.x > -15.46)) then
+					local newTask = ffxiv_nav_interact.Create()
+					newTask.pos = {x = 22.386226654053, y = 0.99999862909317, z = -0.097462706267834}
+					newTask.uniqueid = 2001715
+					ml_task_hub:CurrentTask():AddSubTask(newTask)
+				elseif (not (myPos.x < 23.85 and myPos.x > -15.46) and (gotoPos.x < 23.85 and gotoPos.x > -15.46)) then
+					local newTask = ffxiv_nav_interact.Create()
+					newTask.pos = {x = 26.495914459229, y = 1.0000013113022, z = -0.018158292397857}
+					newTask.uniqueid = 2001717
 					ml_task_hub:CurrentTask():AddSubTask(newTask)
 				end
 			end,
@@ -1654,6 +1726,7 @@ function c_dead:evaluate()
 		if (gBotMode == GetString("grindMode") or gBotMode == GetString("partyMode")) then
 			if (c_dead.timer == 0) then
 				c_dead.timer = Now() + 30000
+				return false
 			end
 			if (Now() > c_dead.timer or HasBuffs(Player, "148")) then
 				ffxiv_task_grind.inFate = false
@@ -1666,7 +1739,7 @@ function c_dead:evaluate()
     return false
 end
 function e_dead:execute()
-    ml_debug("Respawning...")
+    d("Respawning...")
 	-- try raise first
     if(PressYesNo(true)) then
 		c_dead.timer = 0
@@ -1855,8 +1928,8 @@ function c_stealth:evaluate()
 			end
 		end
 			
-		local addMobList = EntityList("attackable,aggressive,minlevel="..tostring(Player.level - 10)..",maxdistance=30")
-		local removeMobList = EntityList("attackable,aggressive,minlevel="..tostring(Player.level - 10)..",maxdistance=40")
+		local addMobList = EntityList("attackable,aggressive,minlevel="..tostring(Player.level - 10)..",maxdistance=20")
+		local removeMobList = EntityList("attackable,aggressive,minlevel="..tostring(Player.level - 10)..",maxdistance=25")
 		
 		if(TableSize(addMobList) > 0 and not HasBuff(Player.id, 47)) or
 		  (TableSize(removeMobList) == 0 and HasBuff(Player.id, 47)) 
@@ -2057,7 +2130,7 @@ end
 c_equip = inheritsFrom( ml_cause )
 e_equip = inheritsFrom( ml_effect )
 function c_equip:evaluate()
-	if(ActionList:IsCasting() or Player.incombat or Player.hasaggro) then
+	if(ActionList:IsCasting() or Player.incombat) then
 		return false
 	end
 

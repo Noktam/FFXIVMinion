@@ -140,7 +140,7 @@ function ffxiv_task_movetopos.Create()
 	newinst.useTeleport = false	-- this is for hack teleport, not in-game teleport spell
 	newinst.postDelay = 0
 	newinst.dismountTimer = 0
-	newinst.dismountDistance = 0
+	newinst.dismountDistance = 10
     
     return newinst
 end
@@ -163,40 +163,6 @@ function ffxiv_task_movetopos:Init()
     self:add( ke_walkToPos, self.process_elements)
     
     self:AddTaskCheckCEs()
-end
-
-function ffxiv_task_movetopos:Process()
-	local parentTask = self:ParentTask()
-	if(ValidTable(parentTask)) then
-		if (self:ParentTask().name == "LT_FATE" and TimeSince(self.obstacleTimer) > 10000) then
-			NavigationManager:ClearAvoidanceAreas()
-			local el = EntityList("attackable,aggressive,notincombat,maxdistance=100,fateid=0")
-	
-			local dirty = false
-			local obst = {}
-			local count = 1
-			local plvl = Player:GetSyncLevel() ~= 0 and Player:GetSyncLevel() or Player.level
-		  
-			for i,e in pairs(el) do
-				local pos = shallowcopy(e.pos)
-				pos.r = 20.0
-				obst[count] = pos
-				count = count + 1
-			end
-			NavigationManager:SetAvoidanceAreas(obst)
-			self.obstacleTimer = Now()
-		end
-	end
-	
-	if (TableSize(self.process_elements) > 0) then
-		ml_cne_hub.clear_queue()
-		ml_cne_hub.eval_elements(self.process_elements)
-		ml_cne_hub.queue_to_execute()
-		ml_cne_hub.execute()
-		return false
-	else
-		ml_debug("no elements in process table")
-	end
 end
 
 function ffxiv_task_movetopos:task_complete_eval()
@@ -242,7 +208,7 @@ function ffxiv_task_movetopos:task_complete_eval()
 				return true
 			end
 		else	
-			if (self.dismountDistance > 0 and distance <= self.dismountDistance and Player.ismounted and Now() > self.dismountTimer) then
+			if (not self.remainMounted and self.dismountDistance > 0 and distance <= self.dismountDistance and Player.ismounted and Now() > self.dismountTimer) then
 				Dismount()
 				self.dismountTimer = Now() + 1500
 			end
@@ -423,6 +389,7 @@ end
 
 function ffxiv_task_teleport:task_complete_execute()  
 	self.completed = true
+	ml_task_hub:CurrentTask():SetDelay(2000)
 end
 
 --=======================STEALTH TASK=========================-
@@ -591,14 +558,24 @@ function ffxiv_task_avoid.Create()
 end
 
 function ffxiv_task_avoid:Init()
-	Player:MoveTo(self.pos.x,self.pos.y,self.pos.z, 1, false, false)
+	Player:MoveTo(self.pos.x,self.pos.y,self.pos.z)
     
     self:AddTaskCheckCEs()
 end
 
 function ffxiv_task_avoid:task_complete_eval()
-	if TimeSince(self.started) > (self.maxTime * 1000) then
-		return true
+	
+	if (self.maxTime > 0) then
+		if TimeSince(self.started) > (self.maxTime * 1000) then
+			return true
+		end
+	else
+		local ppos = shallowcopy(Player.pos)
+		local topos = self.pos
+		local dist = Distance3D(ppos.x,ppos.y,ppos.z,topos.x,topos.y,topos.z)
+		if (dist < 1) then
+			return true
+		end
 	end
 	
 	local target = EntityList:Get(self.targetid)
@@ -821,17 +798,11 @@ function ffxiv_task_grindCombat:Process()
 		local ppos = shallowcopy(Player.pos)
 		local range = ml_global_information.AttackRange
 		Player:SetTarget(target.id)
-		Player:SetFacing(pos.x,pos.y,pos.z)
-		SkillMgr.Cast( target )
 		
 		local dist = Distance3D(ppos.x,ppos.y,ppos.z,pos.x,pos.y,pos.z)
 		if (ml_global_information.AttackRange > 5) then
 			if not InCombatRange(target.id) then
-				if (target.los) then
-					local path = Player:MoveTo(pos.x,pos.y,pos.z, 5, true, false)
-				else
-					local path = Player:MoveTo(pos.x,pos.y,pos.z, 5, false, false)
-				end
+				local path = Player:MoveTo(pos.x,pos.y,pos.z, 5, false, false)
 			else
 				if (Player.ismounted) then
 					Dismount()
@@ -844,7 +815,7 @@ function ffxiv_task_grindCombat:Process()
 			SkillMgr.Cast( target )
 		else
 			if not InCombatRange(target.id) then
-				if (target.los) then
+				if (target.los and dist <= 6) then
 					local path = Player:MoveTo(pos.x,pos.y,pos.z, 1, true, false)
 				else
 					local path = Player:MoveTo(pos.x,pos.y,pos.z, 1, false, false)
@@ -1003,6 +974,8 @@ function ffxiv_nav_interact.Create()
 	newinst.areaChanged = false
 	newinst.addedMoveElement = false
 	
+	GameHacks:SkipDialogue(true)
+	
     return newinst
 end
 
@@ -1019,7 +992,7 @@ end
 function ffxiv_nav_interact:task_complete_eval()		
 	if (IsLoading() and not self.areaChanged) then
 		for i, element in pairs(self.process_elements) do
-			if (element.name == "WalkToPos" or element.name == "Mount") then
+			if (element.name == "TeleportToPos" or element.name == "WalkToPos" or element.name == "Mount") then
 				table.remove(self.process_elements,i)
 			end
 		end
@@ -1032,6 +1005,8 @@ function ffxiv_nav_interact:task_complete_eval()
 	
 	if (self.pos and ValidTable(self.pos)) then
 		if (not self.addedMoveElement) then
+			local ke_teleportToPos = ml_element:create( "TeleportToPos", c_teleporttopos, e_teleporttopos, 25 )
+			self:add( ke_teleportToPos, self.process_elements)
 			
 			local ke_mount = ml_element:create( "Mount", c_mount, e_mount, 20 )
 			self:add( ke_mount, self.process_elements)
@@ -1085,6 +1060,7 @@ end
 
 function ffxiv_nav_interact:task_complete_execute()
     Player:Stop()
+	GameHacks:SkipDialogue(Settings.FFXIVMINION.gSkipDialogue == "1")
 	self.completed = true
 end
 
@@ -1097,5 +1073,6 @@ function ffxiv_nav_interact:task_fail_eval()
 end
 
 function ffxiv_nav_interact:task_fail_execute()
+	GameHacks:SkipDialogue(Settings.FFXIVMINION.gSkipDialogue == "1")
     self.valid = false
 end

@@ -56,27 +56,63 @@ c_nextqueststep = inheritsFrom( ml_cause )
 e_nextqueststep = inheritsFrom( ml_effect )
 e_nextqueststep.task = nil
 function c_nextqueststep:evaluate()
-	if (not ml_task_hub:CurrentTask().quest:isStarted())
-	then
+	if (not ml_task_hub:CurrentTask().quest:isStarted()) then
 		return false
 	end
 	
-	if (ml_task_hub:CurrentTask().currentStepCompleted or (ffxiv_task_quest.restartStep and ffxiv_task_quest.restartStep ~= 0)) then
+	if 	(ml_task_hub:CurrentTask().currentStepCompleted or 
+		(ffxiv_task_quest.restartStep and ffxiv_task_quest.restartStep ~= 0)) 
+	then
 		local quest = ffxiv_task_quest.currentQuest
-		local currentStepIndex = tonumber(Settings.FFXIVMINION.gCurrQuestStep) or 1
+		local guiStepIndex = tonumber(Settings.FFXIVMINION.gCurrQuestStep) or 1
 		
-		if ((ml_task_hub:CurrentTask().currentStepIndex == 1 and currentStepIndex > 1) or 
-			ffxiv_task_quest.restartStep ~= 0) 
+		if ((ml_task_hub:CurrentTask().currentStepIndex == 1 and guiStepIndex > 1) or ffxiv_task_quest.restartStep ~= 0) and
+			(guiStepIndex <= TableSize(ml_task_hub:CurrentTask().quest.steps)) 
 		then
-			ml_task_hub:CurrentTask().currentStepIndex = currentStepIndex
-			ffxiv_task_quest.restartStep = 0
-			ffxiv_task_quest.lastStepStartTime = ml_global_information.Now
+			ml_task_hub:CurrentTask().currentStepIndex = guiStepIndex
+		elseif ((ml_task_hub:CurrentTask().currentStepIndex == 1 and guiStepIndex > 1) or ffxiv_task_quest.restartStep ~= 0) and
+			(guiStepIndex > TableSize(ml_task_hub:CurrentTask().quest.steps))
+		then
+			local startingStep = 1
+			if (ml_task_hub:CurrentTask().quest:isCompleted()) then
+				startingStep = TableSize(ml_task_hub:CurrentTask().quest.steps)
+			end
+			ml_task_hub:CurrentTask().currentStepIndex = startingStep
 		else
 			ml_task_hub:CurrentTask().currentStepIndex = ml_task_hub:CurrentTask().currentStepIndex + 1
 		end
 		
 		local task = ml_task_hub:CurrentTask().quest:GetStepTask(ml_task_hub:CurrentTask().currentStepIndex)
 		if (ValidTable(task)) then
+			
+			--Don't allow complete tasks to be queued with nextqueststep, it has it's own cne.
+			if (task.params["type"] == "complete") then
+				return false
+			end
+			
+			--Check that this task is meant for this job.
+			if (task.params["job"]) then
+				local jobReq = task.params["job"]
+				if (type(jobReq) == "number") then
+					if (Player.job ~= jobReq) then
+						return false
+					end
+				elseif (type(jobReq) == "table") then
+					local allowed = false
+					for job,_ in pairs(jobReq) do
+						if (Player.job == job) then
+							allowed = true
+						end
+						if (allowed) then
+							break
+						end
+					end
+					if (not allowed) then
+						return false
+					end
+				end
+			end
+		
 			e_nextqueststep.task = task
 			return true
 		end
@@ -86,16 +122,14 @@ function c_nextqueststep:evaluate()
 end
 function e_nextqueststep:execute()
 	local task = e_nextqueststep.task
+	--update quest step state
 	ml_task_hub:ThisTask().currentStepCompleted = false
 	
-	if(task.params["type"] == "complete") then
-		--don't let nextqueststep queue a complete task, let the complete cne handle it
-		return
-	end
 	-- initialize task vars for some step types here
 	-- this could really be handled more elegantly than a giant ifelse but
 	-- that will have to come later
 	if(task.params["type"] == "kill") then
+		-- setup kill count
 		if(Settings.FFXIVMINION.questKillCount ~= nil) then
 			if(Settings.FFXIVMINION.questKillCount) then
 				task.killCount = Settings.FFXIVMINION.questKillCount
@@ -104,6 +138,15 @@ function e_nextqueststep:execute()
 			end
 			
 			gQuestKillCount = tostring(task.killCount)
+		end
+		
+		-- setup item count
+		local itemid = tonumber(task.params["itemid"])
+		if(itemid) then
+			local item = Inventory:Get(itemid)
+			if(ValidTable(item)) then
+				task.startingCount = item.count
+			end
 		end
 	elseif(task.params["type"] == "vendor") then
 		local itemtable = tonumber(task.params["itemid"])
@@ -144,13 +187,13 @@ function e_nextqueststep:execute()
 	gQuestStepType = task.params["type"]
 	Settings.FFXIVMINION.gCurrQuestStep = tonumber(gCurrQuestStep)
 	ffxiv_task_quest.SetQuestFlags()	
-	ffxiv_task_quest.lastStepStartTime = ml_global_information.Now
+	ffxiv_task_quest.lastStepStartTime = Now()
 end
 
 c_questmovetomap = inheritsFrom( ml_cause )
 e_questmovetomap = inheritsFrom( ml_effect )
 function c_questmovetomap:evaluate()
-	local mapID = ml_task_hub:CurrentTask().params["mapid"]
+	local mapID = ml_task_hub:ThisTask().params["mapid"]
     if (mapID and mapID > 0) then
         if(Player.localmapid ~= mapID) then
 			local pos = ml_nav_manager.GetNextPathPos(	Player.pos,
@@ -170,18 +213,21 @@ end
 function e_questmovetomap:execute()
 	local task = ffxiv_task_movetomap.Create()
 	task.destMapID = e_questmovetomap.mapID
+	if (ValidTable(ml_task_hub:ThisTask().params["pos"])) then
+		task.pos = ml_task_hub:ThisTask().params["pos"]
+	end
 	ml_task_hub:CurrentTask():AddSubTask(task)
 end
 
 c_questmovetopos = inheritsFrom( ml_cause )
 e_questmovetopos = inheritsFrom( ml_effect )
 function c_questmovetopos:evaluate()
-	local mapID = ml_task_hub:CurrentTask().params["mapid"]
+	local mapID = ml_task_hub:ThisTask().params["mapid"]
     if (mapID and mapID > 0) then
         if(Player.localmapid == mapID) then
-			local pos = ml_task_hub:CurrentTask().params["pos"]
+			local pos = ml_task_hub:ThisTask().params["pos"]
 			local threshold = 2
-			if(ml_task_hub:CurrentTask().params["type"] == "nav")then
+			if(ml_task_hub:ThisTask().params["type"] == "nav")then
 				threshold = 0.5
 			end
 			--return Distance2D(Player.pos.x, Player.pos.z, pos.x, pos.z) > 2
@@ -192,12 +238,12 @@ function c_questmovetopos:evaluate()
 	return false
 end
 function e_questmovetopos:execute()
-	local pos = ml_task_hub:CurrentTask().params["pos"]
+	local pos = ml_task_hub:ThisTask().params["pos"]
 	local newTask = ffxiv_task_movetopos.Create()
 	newTask.pos = pos
 	newTask.use3d = true
 	newTask.postDelay = 1500
-	if(ml_task_hub:CurrentTask().params["type"] == "nav")then
+	if (ml_task_hub:ThisTask().params["type"] == "nav") then
 		newTask.range = 0.5
 	end
 	
@@ -220,20 +266,21 @@ function e_questmovetopos:execute()
 	
 	--add kill aggro target check
 	local ke_killAggroTarget = ml_element:create( "KillAggroTarget", c_questkillaggrotarget, e_questkillaggrotarget, 20 )
-	if(	ml_task_hub:CurrentTask().params["killaggro"] or 
-		ml_task_hub:CurrentTask().params["type"] == "interact") 
+	if(	ml_task_hub:ThisTask().params["killaggro"] or 
+		ml_task_hub:ThisTask().params["type"] == "interact") 
 	then
 		newTask:add( ke_killAggroTarget, newTask.overwatch_elements)
 	end
 	
-	ml_task_hub:CurrentTask():AddSubTask(newTask)
+	newTask.params = ml_task_hub:ThisTask().params
+	ml_task_hub:ThisTask():AddSubTask(newTask)
 end
 
 c_questaccept = inheritsFrom( ml_cause )
 e_questaccept = inheritsFrom( ml_effect )
 function c_questaccept:evaluate()	
 	--local id = ffxiv_task_quest.currentQuest.id
-	local id = ml_task_hub:CurrentTask().params["questid"] or ffxiv_task_quest.currentQuest.id
+	local id = ml_task_hub:ThisTask().params["questid"] or ffxiv_task_quest.currentQuest.id
     if (id and id > 0) then
 		return Quest:IsQuestAcceptDialogOpen(id)
     end
@@ -243,7 +290,7 @@ end
 function e_questaccept:execute()
 	Quest:AcceptQuest()
 	--backup check here to clear Kill Count if its already set from previous bad run
-	if(ml_task_hub:CurrentTask().params["type"] and ml_task_hub:CurrentTask().params["type"] == "kill")then
+	if(ml_task_hub:ThisTask().params["type"] and ml_task_hub:ThisTask().params["type"] == "kill")then
 		ffxiv_task_quest.killCount = 0
 		ffxiv_task_quest.backupKillCount = 0
 		ffxiv_task_quest.killTaskCompleted = false
@@ -252,8 +299,8 @@ function e_questaccept:execute()
 		gQuestKillCount = ffxiv_task_quest.killCount
 	end
 	
-	ml_task_hub:CurrentTask():ParentTask().startTimer = ml_global_information.Now
-	ml_task_hub:CurrentTask().stepCompleted = true
+	ml_task_hub:ThisTask():ParentTask().startTimer = ml_global_information.Now
+	ml_task_hub:ThisTask().stepCompleted = true
 end
 
 c_questcomplete = inheritsFrom( ml_cause )
@@ -269,7 +316,12 @@ function e_questcomplete:execute()
 	end
 	
 	if(ml_task_hub:CurrentTask().params["equip"]) then
-		ffxiv_task_quest.lastArmoryIDs = GetArmoryIDsTable()
+		local gear = GetArmoryIDsTable()
+		if (ValidTable(gear)) then
+			ffxiv_task_quest.lastArmoryIDs = gear
+		else
+			ffxiv_task_quest.lastArmoryIDs = false
+		end
 	end
 	
 	if(ml_task_hub:CurrentTask().params["itemreward"]) then
@@ -400,8 +452,17 @@ function c_questkill:evaluate()
 		--end
 	
 		--otherwise check for mobs not incombat so we get credit for kill
+		local petid = nil
+		if (ValidTable(Player.pet)) then
+			petid = Player.pet.id
+		end
+		
 		if(not ValidTable(el)) then
 			el = EntityList("shortestpath,onmesh,alive,attackable,fateid=0,notincombat,contentid="..tostring(id))
+		end
+		
+		if(not ValidTable(el) and petid ~= nil) then
+			el = EntityList("shortestpath,onmesh,alive,attackable,fateid=0,contentid="..tostring(id)..",targeting="..tostring(petid))
 		end
 		
 		if(ValidTable(el)) then
@@ -428,7 +489,7 @@ function e_questkill:execute()
 	newTask.task_fail_evaluate = 
 		function()
 			local target = EntityList:Get(ml_task_hub:CurrentTask().targetid)
-			return not ValidTable(target) or (target.incombat and not target.targetid == Player.id)
+			return not ValidTable(target) or (target.incombat and target.targetid ~= Player.id and (not Player.pet or target.targetid ~= Player.pet.id) and target.targetid ~= 0)
 		end
 	ml_task_hub:CurrentTask():AddSubTask(newTask)
 end
@@ -439,6 +500,19 @@ function c_questprioritykill:evaluate()
 	local ids = ml_task_hub:ThisTask().params["ids"]
 	if (not ids) then
 		return false
+	end
+	
+	local healerID = nil
+	local healerPos = nil
+	if (ml_task_hub:ThisTask().params["healerid"]) then
+		local el = EntityList("onmesh,alive,contentid="..tostring(ml_task_hub:ThisTask().params["healerid"]))
+		if (ValidTable(el)) then
+			local id, healer = next(el)
+			if (healer) then
+				healerID = healer.id
+				healerPos = shallowcopy(healer.pos)
+			end
+		end
 	end
 	
 	if (ml_task_hub:ThisTask().subtask == nil and ml_task_hub:ThisTask().currentPrio ~= 0) then
@@ -454,10 +528,20 @@ function c_questprioritykill:evaluate()
 			if (ValidTable(el)) then
 				local id, target = next(el)
 				if (target) then
-					e_questprioritykill.id = target.id
-					e_questprioritykill.contentid = target.uniqueid
-					ml_task_hub:ThisTask().currentPrio = priority
-					return true
+					if (healerID) then
+						local healerdist = Distance3D(target.pos.x,target.pos.y,target.pos.z,healerPos.x,healerPos.y,healerPos.z)
+						if (healerdist <= 30) then
+							e_questprioritykill.id = target.id
+							e_questprioritykill.contentid = target.uniqueid
+							ml_task_hub:ThisTask().currentPrio = priority
+							return true
+						end
+					else
+						e_questprioritykill.id = target.id
+						e_questprioritykill.contentid = target.uniqueid
+						ml_task_hub:ThisTask().currentPrio = priority
+						return true
+					end
 				end
 			end	
 		end
@@ -467,6 +551,7 @@ function c_questprioritykill:evaluate()
 end
 function e_questprioritykill:execute()
 	Player:Stop()
+	ml_task_hub:ThisTask().failTimer = 0
 	
 	local newTask = ffxiv_task_grindCombat.Create()
 	newTask.targetid = e_questprioritykill.id
@@ -525,7 +610,7 @@ end
 c_indialog = inheritsFrom( ml_cause )
 e_indialog = inheritsFrom( ml_effect )
 function c_indialog:evaluate()
-	return Quest:IsInDialog() and not ControlVisible("SelectIconString") and not ControlVisible("SelectString")
+	return Quest:IsInDialog() and not ControlVisible("SelectIconString") and not ControlVisible("SelectString") and not Quest:IsRequestDialogOpen()
 end
 function e_indialog:execute()
 	--do nothing, this is a blocking cne to avoid spamming
@@ -565,8 +650,9 @@ function e_questgrind:execute()
 		gDoFates = "0"
 	else
 		gDoFates = "1"
-		gMinFateLevel = "5"
-		gMaxFateLevel = "5"
+		gMinFateLevel = "7"
+		gMaxFateLevel = "2"
+		gFateWaitPercent = 1 
 	end
 	
 	local newTask = ffxiv_task_grind.Create()
@@ -647,16 +733,16 @@ function c_questuseitem:evaluate()
 		return false
 	end
 	
-	if(ml_task_hub:CurrentTask().params["itemid"]) then
-		local id = ml_task_hub:CurrentTask().params["itemid"]
+	if(ml_task_hub:ThisTask().params["itemid"]) then
+		local id = ml_task_hub:ThisTask().params["itemid"]
 		local item = Inventory:Get(id)
 		if(ValidTable(item)) then
-			if(item.count < ml_task_hub:CurrentTask().startingCount) then
+			if(item.count < ml_task_hub:ThisTask().startingCount) then
 				return false
 			end
 			
-			if(ml_task_hub:CurrentTask().params["id"]) then
-				local list = EntityList("shortestpath,contentid="..tostring(ml_task_hub:CurrentTask().params["id"]))
+			if(ml_task_hub:ThisTask().params["id"]) then
+				local list = EntityList("shortestpath,contentid="..tostring(ml_task_hub:ThisTask().params["id"]))
 				if(ValidTable(list)) then
 					id, entity = next(list)
 					if(id ~= nil and entity.targetable) then
@@ -678,12 +764,12 @@ function c_questuseitem:evaluate()
 	end
 end
 function e_questuseitem:execute()
-	local item = Inventory:Get(ml_task_hub:CurrentTask().params["itemid"])
+	local item = Inventory:Get(ml_task_hub:ThisTask().params["itemid"])
 	if(e_questuseitem.id ~= nil) then
 		Player:SetTarget(e_questuseitem.id)
 		item:Use(e_questuseitem.id)
-	elseif(ml_task_hub:CurrentTask().params["usepos"]) then
-		local pos = ml_task_hub:CurrentTask().params["usepos"]
+	elseif(ml_task_hub:ThisTask().params["usepos"]) then
+		local pos = ml_task_hub:ThisTask().params["usepos"]
 		item:Use(pos.x, pos.y, pos.z)
 	else
 		item:Use()
@@ -692,12 +778,69 @@ function e_questuseitem:execute()
 	ml_task_hub:ThisTask().stepCompleted = true
 end
 
+--variation of regular useitem cne. this one is designed to be used as part of a kill task by 
+--checking for a given effect id and casting if the id isn't present
+c_questuseitemonhostile = inheritsFrom( ml_cause )
+e_questuseitemonhostile = inheritsFrom( ml_effect )
+function c_questuseitemonhostile:evaluate()
+	if (ml_task_hub:CurrentTask():IsDelayed() or
+		ActionList:IsCasting()) 
+	then
+		return false
+	end
+	
+	if(ml_task_hub:ThisTask().params["itemid"]) then
+		local id = ml_task_hub:ThisTask().params["itemid"]
+		local item = Inventory:Get(id)
+		if(ValidTable(item)) then
+			if(item.count < ml_task_hub:ThisTask().startingCount) then
+				return false
+			end
+			
+			if(ml_task_hub:ThisTask().params["id"]) then
+				local list = EntityList("shortestpath,contentid="..tostring(ml_task_hub:ThisTask().params["id"]))
+				if(ValidTable(list)) then
+					id, entity = next(list)
+					if(id ~= nil and entity.targetable) then
+						if(ml_task_hub:ThisTask().params["itemeffectid"]) then
+							if(not HasBuff(id, ml_task_hub:ThisTask().params["itemeffectid"])) then
+								e_questuseitemonhostile.id = id
+								return true
+							end
+						else
+							e_questuseitemonhostile.id = id
+							return true
+						end
+					end
+				end
+			end
+			
+			return false
+		else
+			ml_error("No item with specified ID found in inventory")
+			return false
+		end
+	else
+		return false
+	end
+end
+function e_questuseitemonhostile:execute()
+	local item = Inventory:Get(ml_task_hub:ThisTask().params["itemid"])
+	if(e_questuseitemonhostile.id ~= nil) then
+		Player:SetTarget(e_questuseitemonhostile.id)
+		item:Use(e_questuseitemonhostile.id)
+	elseif(ml_task_hub:ThisTask().params["usepos"]) then
+		local pos = ml_task_hub:ThisTask().params["usepos"]
+		item:Use(pos.x, pos.y, pos.z)
+	end
+end
+
 c_questuseaction = inheritsFrom( ml_cause )
 e_questuseaction = inheritsFrom( ml_effect )
 function c_questuseaction:evaluate()
-	if(ml_task_hub:CurrentTask().params["actionid"]) then
-		local actionid = ml_task_hub:CurrentTask().params["actionid"]
-		local actiontype = ml_task_hub:CurrentTask().params["actiontype"]
+	if(ml_task_hub:ThisTask().params["actionid"]) then
+		local actionid = ml_task_hub:ThisTask().params["actionid"]
+		local actiontype = ml_task_hub:ThisTask().params["actiontype"]
 
 		local action = nil
 		if(actiontype) then
@@ -719,7 +862,7 @@ function c_questuseaction:evaluate()
 	end
 end
 function e_questuseaction:execute()
-	if(ml_task_hub:CurrentTask().params["id"]) then
+	if(ml_task_hub:ThisTask().params["id"]) then
 		local list = EntityList("contentid="..tostring(ml_task_hub:ThisTask().params["id"]))
 		if(ValidTable(list)) then
 			local id, target = next(list)
@@ -738,9 +881,11 @@ end
 c_questmovetohealer = inheritsFrom( ml_cause )
 e_questmovetohealer = inheritsFrom( ml_effect )
 function c_questmovetohealer:evaluate()
-	if(ml_task_hub:ThisTask().params["healerid"] and Player.hp.percent < 50) then
-		local list = EntityList("contentid="..tostring(ml_task_hub:ThisTask().params["healerid"]))
+	if(ml_task_hub:ThisTask().params["healerid"] and Player.hp.percent < 80) then
+		d("test1")
+		local list = EntityList("contentid="..tostring(ml_task_hub:ThisTask().params["healderid"]))
 		if(ValidTable(list)) then
+			d("test2")
 			local id, healer = next(list)
 			if(ValidTable(healer) and healer.distance > 5) then
 				e_questmovetohealer.pos = healer.pos
@@ -758,21 +903,21 @@ function e_questmovetohealer:execute()
 	newTask.pos = pos
 	newTask.use3d = true
 	
-	ml_task_hub:CurrentTask():AddSubTask(newTask)
+	ml_task_hub:Add(newTask, IMMEDIATE_GOAL, TP_IMMEDIATE)
 end
 
 c_questmovetoactionrange = inheritsFrom( ml_cause )
 e_questmovetoactionrange = inheritsFrom( ml_effect )
 function c_questmovetoactionrange:evaluate()
-    if ( ml_task_hub:CurrentTask().params["id"] ) then
-        local list = EntityList:Get("shortestpath,contentid="..ml_task_hub:CurrentTask().params["id"])
+    if ( ml_task_hub:ThisTask().params["id"] ) then
+        local list = EntityList:Get("shortestpath,contentid="..ml_task_hub:ThisTask().params["id"])
 		if(ValidTable(list)) then
 			local id, entity = next(list)
 			if(ValidTable(entity)) then
 				e_questmovetoactionrange.id = entity.id
 				
-				local actionid = ml_task_hub:CurrentTask().params["actionid"]
-				local actiontype = ml_task_hub:CurrentTask().params["actiontype"]
+				local actionid = ml_task_hub:ThisTask().params["actionid"]
+				local actiontype = ml_task_hub:ThisTask().params["actiontype"]
 
 				if(actiontype) then
 					return not ActionList:CanCast(actionid,actiontype,entity.id)
@@ -948,7 +1093,6 @@ function c_questkillaggrotarget:evaluate()
 	end
 	
 	local taskName = ml_task_hub:ThisTask().name
-
 	if (ml_task_hub:ThisTask().name == "MOVETOPOS") then
 		if(e_questflee.fleeing) then
 			return false
@@ -957,17 +1101,19 @@ function c_questkillaggrotarget:evaluate()
 		local myPos = Player.pos
 		local gotoPos = ml_task_hub:ThisTask().pos
 		local distance = Distance2D(myPos.x, myPos.z, gotoPos.x, gotoPos.z)
-		if(distance > 50) then
+		if (distance > 50) then
 			--d("KillAggroTarget False - distance to quest pos :"..tostring(distance))
 			return false
 		end
 	end
 
 	local excludeID = nil
-	if (ml_task_hub:ThisTask().params) then
-		local targetid = ml_task_hub:ThisTask().params["id"]
-		if (targetid and targetid > 0 and taskName == "QUEST_KILL") then
-			excludeID = targetid
+	if (taskName == "QUEST_KILL") then
+		if (ml_task_hub:ThisTask().params) then
+			local targetid = ml_task_hub:ThisTask().params["id"]
+			if (targetid and targetid > 0) then
+				excludeID = targetid
+			end
 		end
 	end
 	
@@ -987,32 +1133,63 @@ function c_questkillaggrotarget:evaluate()
 		end
 	end
 	
-	if (taskName == "QUEST_KILL") then
-		el = EntityList("shortestpath,alive,attackable,onmesh,aggressive,targetid=0,maxdistance=10")
-	elseif (taskName == "QUEST_INTERACT" or taskName == "QUEST_USEITEM") then
-		local interactid = ml_task_hub:ThisTask().params["id"]
-		local el = EntityList("shortestpath,contentid="..tostring(interactid))
+	--For summoners/pet users
+	local petid = nil
+	if (Player.pet) then 
+		petid = Player.pet.id 
+	end
+	
+	if (petid) then
+		local el = EntityList("alive,attackable,onmesh,targeting="..tostring(petid))
 		if (ValidTable(el)) then
-			local id, entity = next(el)
-			if (entity) then
-				el = EntityList("shortestpath,alive,attackable,onmesh,aggressive,targetid=0,maxdistance=15,distanceto="..tostring(entity.id))
+			local id, target = next(el)
+			if (ValidTable(target)) then
+				if(target.hp.current > 0 and target.id ~= nil and target.id ~= 0 and (target.level <= (Player.level + 3))) then
+					if (not excludeID or excludeID ~= target.uniqueid) then
+						--d("KillAggroTarget True - targeting pet")
+						c_questkillaggrotarget.targetid = target.id
+						return true
+					elseif (excludeID == target.uniqueid) then
+						return false
+					end
+				end
+			end
+		end
+	end
+	
+	local ignoreAggressive = false
+	if (ml_task_hub:ThisTask().params) then
+		ignoreAggressive = ml_task_hub:ThisTask().params["ignoreaggressive"]
+	end
+	
+	if (not ignoreAggressive) then
+		if (taskName == "QUEST_KILL") then
+			el = EntityList("shortestpath,alive,attackable,onmesh,aggressive,targetid=0,maxdistance=10")
+		elseif (taskName == "QUEST_INTERACT" or taskName == "QUEST_USEITEM") then
+			local interactid = ml_task_hub:ThisTask().params["id"]
+			local el = EntityList("shortestpath,contentid="..tostring(interactid))
+			if (ValidTable(el)) then
+				local id, entity = next(el)
+				if (entity) then
+					el = EntityList("shortestpath,alive,attackable,onmesh,aggressive,targetid=0,maxdistance=15,distanceto="..tostring(entity.id))
+				end
+			else
+				return false
 			end
 		else
-			return false
-		end
-	else
-		el = EntityList("shortestpath,alive,attackable,onmesh,aggressive,targetid=0,maxdistance=10")
-	end	
-	
-	if (ValidTable(el)) then
-		local id, target = next(el)
-		if (ValidTable(target)) then
-			if(target.hp.current > 0 and target.id ~= nil and target.id ~= 0 and (target.level <= (Player.level + 3)) and
-				(target.fateid == 0 or (target.fateid ~= 0 and target.level >= (Player.level - 5)))) then
-				if (not excludeID or excludeID ~= target.uniqueid) then
-					--d("KillAggroTarget True - aggressive")
-					c_questkillaggrotarget.targetid = target.id
-					return true
+			el = EntityList("shortestpath,alive,attackable,onmesh,aggressive,targetid=0,maxdistance=10")
+		end	
+		
+		if (ValidTable(el)) then
+			local id, target = next(el)
+			if (ValidTable(target)) then
+				if(target.hp.current > 0 and target.id ~= nil and target.id ~= 0 and (target.level <= (Player.level + 3)) and
+					(target.fateid == 0 or (target.fateid ~= 0 and target.level >= (Player.level - 5)))) then
+					if (not excludeID or excludeID ~= target.uniqueid) then
+						--d("KillAggroTarget True - aggressive")
+						c_questkillaggrotarget.targetid = target.id
+						return true
+					end
 				end
 			end
 		end
@@ -1024,6 +1201,7 @@ function e_questkillaggrotarget:execute()
 	--just in case
 	Player:Stop()
 	Dismount()
+	ml_task_hub:ThisTask().failTimer = 0
 	
 	local newTask = ffxiv_task_grindCombat.Create()
     newTask.targetid = c_questkillaggrotarget.targetid
@@ -1045,14 +1223,13 @@ end
 
 c_questbuy = inheritsFrom( ml_cause )
 e_questbuy = inheritsFrom( ml_effect )
-
 function c_questbuy:evaluate()	
 	--check for vendor window open
 	if (not ControlVisible("Shop")) then
 		return false
 	end
 	
-	local itemtable = ml_task_hub:CurrentTask().params["itemid"]
+	local itemtable = ml_task_hub:ThisTask().params["itemid"]
 	if(ValidTable(itemtable))then
 		local itemid = itemtable[Player.job] or itemtable[-1]
 		if (itemid) then
@@ -1062,51 +1239,54 @@ function c_questbuy:evaluate()
 	end
 	
 	return false
-	
 end
+
 function e_questbuy:execute()
-	local buyamount = ml_task_hub:CurrentTask().params["buyamount"] or 1
-	d("test")
-	d(e_questbuy.itemid)
-	if(Inventory:BuyShopItem(e_questbuy.itemid,buyamount)) then
-		if(ml_task_hub:CurrentTask().params["equip"]) then
-			ffxiv_task_quest.AddEquipItem(e_questbuy.itemid)
+	if(ml_task_hub:ThisTask().params["equip"]) then
+		local gear = GetArmoryIDsTable()
+		if (ValidTable(gear)) then
+			ffxiv_task_quest.lastArmoryIDs = gear
+		else
+			ffxiv_task_quest.lastArmoryIDs = false
 		end
 	end
 	
+	local buyamount = ml_task_hub:ThisTask().params["buyamount"] or 1
+	Inventory:BuyShopItem(e_questbuy.itemid,buyamount)
+	
 	--set a delay on the current task to give the server time to update the item count
 	--so the task completion check will be valid
-	ml_task_hub:CurrentTask():SetDelay(1000)
+	ml_task_hub:ThisTask():SetDelay(1000)
 end
 
 c_questselectconvindex = inheritsFrom( ml_cause )
 e_questselectconvindex = inheritsFrom( ml_effect )
 function c_questselectconvindex:evaluate()	
 	--check for vendor window open
-	local index = ml_task_hub:CurrentTask().params["conversationindex"]
+	local index = ml_task_hub:ThisTask().params["conversationindex"]
 	return index and (ControlVisible("SelectIconString") or ControlVisible("SelectString"))
 end
 function e_questselectconvindex:execute()
-	SelectConversationIndex(tonumber(ml_task_hub:CurrentTask().params["conversationindex"]))
-	if (ml_task_hub:CurrentTask().params["type"] == "interact") then
-		ml_task_hub:CurrentTask().stepCompleted = true
+	SelectConversationIndex(tonumber(ml_task_hub:ThisTask().params["conversationindex"]))
+	if (ml_task_hub:ThisTask().params["type"] == "interact") then
+		ml_task_hub:ThisTask().stepCompleted = true
 	end
 	--delay to allow conversation to update
-	ml_task_hub:CurrentTask():SetDelay(1500)
+	ml_task_hub:ThisTask():SetDelay(1500)
 end
 
 --when we want to equip a new item from a reward we create a table of current ids before reward
 --then this cne kicks in and sees that the table was set, checks a diff, and equips anything new
 c_equipreward = inheritsFrom( ml_cause )
 e_equipreward = inheritsFrom( ml_effect )
-function c_equipreward:evaluate()	
-	return ValidTable(ffxiv_task_quest.lastArmoryIDs)
+function c_equipreward:evaluate()
+	return (ValidTable(ffxiv_task_quest.lastArmoryIDs) or ffxiv_task_quest.lastArmoryIDs == false)
 end
 function e_equipreward:execute()
 	local newArmoryIDs = GetArmoryIDsTable()
 	for id, _ in pairs(newArmoryIDs) do
-		if(not ffxiv_task_quest.lastArmoryIDs[id]) then
-			ffxiv_task_quest.AddEquipItem(id)
+		if(not ffxiv_task_quest.lastArmoryIDs or not ffxiv_task_quest.lastArmoryIDs[id]) then
+			ffxiv_task_quest.AddEquipItem(id, true)
 		end
 	end
 	ffxiv_task_quest.lastArmoryIDs = {}
@@ -1115,7 +1295,7 @@ end
 c_questequip = inheritsFrom( ml_cause )
 e_questequip = inheritsFrom( ml_effect )
 function c_questequip:evaluate()
-	local itemid = ml_task_hub:CurrentTask().params["itemid"]
+	local itemid = ml_task_hub:ThisTask().params["itemid"]
 	if(type(itemid) == "number") then
 		local item = Inventory:Get(itemid)
 		if(ValidTable(item)) then
@@ -1143,8 +1323,8 @@ function c_questequip:evaluate()
 	return false
 end
 function e_questequip:execute()
-	local itemid = ml_task_hub:CurrentTask().params["itemid"]
-	local itemtype = ml_task_hub:CurrentTask().params["itemtype"] or 0
+	local itemid = ml_task_hub:ThisTask().params["itemid"]
+	local itemtype = ml_task_hub:ThisTask().params["itemtype"] or 0
 	
 	if(type(itemid) == "number") then
 		ffxiv_task_quest.AddEquipItem(itemid, true, itemtype)
@@ -1198,13 +1378,13 @@ c_questitemcastdelay = inheritsFrom( ml_cause )
 e_questitemcastdelay = inheritsFrom( ml_effect )
 function c_questitemcastdelay:evaluate()
 	local target = Player:GetTarget()
-	if(target and target.type == 7) then
+	if(target and (target.type == 7 or target.type == 3)) then
 		if(Player.castinginfo.casttime > 0 and not ml_task_hub:ThisTask().delaySet) then
 			return true
 		end
 	end
 end
 function e_questitemcastdelay:execute()
-	ml_task_hub:CurrentTask():SetDelay(tonumber(Player.castinginfo.casttime)*1000 + 2000)
+	ml_task_hub:ThisTask():SetDelay(tonumber(Player.castinginfo.casttime)*1000 + 2000)
 	ml_task_hub:ThisTask().delaySet = true
 end

@@ -115,9 +115,13 @@ end
 
 --returns a task for the given step index
 function ffxiv_quest:GetStepTask(stepIndex)
+	local task = nil
 	local params = self.steps[stepIndex]
-	local task = ffxiv_quest.tasks[params.type]()
-	task.params = params
+	
+	if (params) then
+		task = ffxiv_quest.tasks[params.type]()
+		task.params = params
+	end
 	
 	return task
 end
@@ -146,5 +150,6 @@ ffxiv_quest.tasks =
 	["useaction"]	= ffxiv_quest_useaction.Create,
 	["vendor"]		= ffxiv_quest_vendor.Create,
 	["equip"]		= ffxiv_quest_equip.Create,
-	["killaggro"]		= ffxiv_quest_killaggro.Create,
+	["killaggro"]	= ffxiv_quest_killaggro.Create,
+	["finish"] 		= ffxiv_quest_finish.Create,
 }

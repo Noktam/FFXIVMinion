@@ -341,8 +341,9 @@ function ffxivminion.HandleInit()
 	GUI_NewButton(winName, strings[gCurrentLanguage].skillManager, "SkillManager.toggle")
     GUI_NewButton(winName, strings[gCurrentLanguage].meshManager, "ToggleMeshManager")
     GUI_NewButton(winName, strings[gCurrentLanguage].blacklistManager, "ToggleBlacklistMgr")
-	--GUI_NewButton(winName, strings[gCurrentLanguage].markerManager, "ToggleMarkerMgr")
 	GUI_NewButton(winName,strings[gCurrentLanguage].profileManager,"QMToggleMain")
+	--GUI_NewButton(winName, strings[gCurrentLanguage].aetheryteManager, "ToggleAethMgr")
+	GUI_NewButton(winName,GetString("importExport"), "ToggleImportMgr")
 	
 	local group = GetString("botStatus")
 	GUI_NewField(winName,strings[gCurrentLanguage].pulseTime,"gFFXIVMINIONPulseTime",group )
@@ -496,8 +497,8 @@ function ffxivminion.HandleInit()
 	ml_marker_mgr.GetLevel = 		function () return Player.level end
 	ml_marker_mgr.DrawMarker =		ffxivminion.DrawMarker
 	ml_marker_mgr.markerPath = 		ml_global_information.path.. [[\Navigation\]]
+	ml_node.DistanceTo	= 			ffxivminion.NodeDistance
 	
-
 -- setup meshmanager
 	if ( ml_mesh_mgr ) then
 		ml_mesh_mgr.parentWindow.Name = ml_global_information.MainWindow.Name
@@ -509,9 +510,9 @@ function ffxivminion.HandleInit()
 	-- Set default meshes SetDefaultMesh(mapid, filename)
 		ml_mesh_mgr.SetDefaultMesh(134, "Middle La Noscea")
 		ml_mesh_mgr.SetDefaultMesh(135, "Lower La Noscea")
-		ml_mesh_mgr.SetDefaultMesh(137, "Eastern La Noscea - Costa Del Sol")
+		ml_mesh_mgr.SetDefaultMesh(137, "Eastern La Noscea")
 		ml_mesh_mgr.SetDefaultMesh(138, "Western La Noscea")
-		ml_mesh_mgr.SetDefaultMesh(139, "Upper La Noscea - Right")
+		ml_mesh_mgr.SetDefaultMesh(139, "Upper La Noscea")
 		ml_mesh_mgr.SetDefaultMesh(140, "Western Thanalan")
 		ml_mesh_mgr.SetDefaultMesh(141, "Central Thanalan")
 		ml_mesh_mgr.SetDefaultMesh(145, "Eastern Thanalan")
@@ -802,18 +803,14 @@ function ffxivminion.SwitchMode(mode)
 			gTeleport = "1"
 			ffxiv_task_duty.UpdateProfiles()
 			gSkipCutscene = "1"
-			GameHacks:SkipCutscene(true)
 			gSkipDialogue = "1"
-			GameHacks:SkipDialogue(true)
 			gDisableDrawing = Settings.FFXIVMINION.gDisableDrawing
 			GameHacks:Disable3DRendering(gDisableDrawing == "1")
 		elseif (gBotMode == GetString("questMode")) then
 			gTeleport = Settings.FFXIVMINION.gTeleport
 			ffxiv_task_quest.UpdateProfiles()
 			gSkipCutscene = "1"
-			GameHacks:SkipCutscene(true)
 			gSkipDialogue = "1"
-			GameHacks:SkipDialogue(true)
 			gDisableDrawing = "0"
 			GameHacks:Disable3DRendering(false)
 			gAvoidAOE = "1"
@@ -827,8 +824,6 @@ function ffxivminion.SwitchMode(mode)
 			gSkipCutscene = Settings.FFXIVMINION.gSkipCutscene
 			gSkipDialogue = Settings.FFXIVMINION.gSkipDialogue
 			gAvoidAOE = Settings.FFXIVMINION.gAvoidAOE
-			GameHacks:SkipCutscene(gSkipCutscene == "1")
-			GameHacks:SkipDialogue(gSkipDialogue == "1")
 			gProfile_listitems = "NA"
 			gProfile = "NA"
 		end
@@ -837,7 +832,9 @@ end
 
 function ffxivminion.SetMode(mode)
     local task = ffxivminion.modes[mode]
-    if (task ~= nil) then		
+    if (task ~= nil) then
+		GameHacks:SkipCutscene(gSkipCutscene == "1")
+		GameHacks:SkipDialogue(gSkipDialogue == "1")
 		ml_task_hub:Add(task.Create(), LONG_TERM_GOAL, TP_ASAP)
     end
 end
@@ -856,6 +853,8 @@ function ffxivminion.CheckClass()
         [FFXIV.JOBS.LANCER]			= ffxiv_combat_lancer,
         [FFXIV.JOBS.MARAUDER] 		= ffxiv_combat_marauder,
         [FFXIV.JOBS.MONK] 			= ffxiv_combat_monk,
+		[FFXIV.JOBS.NINJA] 			= ffxiv_combat_ninja,
+		[FFXIV.JOBS.ROGUE]			= ffxiv_combat_rogue,
         [FFXIV.JOBS.PALADIN] 		= ffxiv_combat_paladin,
         [FFXIV.JOBS.PUGILIST] 		= ffxiv_combat_pugilist,
         [FFXIV.JOBS.SCHOLAR] 		= ffxiv_combat_scholar,
@@ -863,6 +862,9 @@ function ffxivminion.CheckClass()
         [FFXIV.JOBS.THAUMATURGE] 	= ffxiv_combat_thaumaturge,
         [FFXIV.JOBS.WARRIOR] 	 	= ffxiv_combat_warrior,
         [FFXIV.JOBS.WHITEMAGE] 	 	= ffxiv_combat_whitemage,
+		[FFXIV.JOBS.ROGUE]			= ffxiv_combat_rogue,
+		[FFXIV.JOBS.NINJA]			= ffxiv_combat_ninja,
+		
 		
         [FFXIV.JOBS.BOTANIST] 		= ffxiv_gather_botanist,
         [FFXIV.JOBS.FISHER] 		= ffxiv_gather_fisher,
@@ -876,6 +878,8 @@ function ffxivminion.CheckClass()
 		[FFXIV.JOBS.WEAVER] 		= ffxiv_crafting_weaver,
 		[FFXIV.JOBS.ALCHEMIST] 		= ffxiv_crafting_alchemist,
 		[FFXIV.JOBS.CULINARIAN] 	= ffxiv_crafting_culinarian,
+		
+
     }
 	
 	if (ml_global_information.CurrentClass == nil) then
@@ -1026,7 +1030,7 @@ function ffxivminion.OpenSettings()
 	local wnd = GUI_GetWindowInfo(gBotMode)
 	local winName = ffxivminion.Windows.Main.Name
 	
-	GUI_MoveWindow(winName, wnd.x,wnd.y+wnd.height)
+	GUI_MoveWindow(winName,wnd.x+wnd.width,wnd.y)
 	local winTable = ffxivminion.GetWindowSize(winName)
 	GUI_SizeWindow(winName,wnd.width,winTable.height)
 	GUI_WindowVisible(winName,true)
@@ -1158,7 +1162,27 @@ function ffxivminion.DrawMarker(marker)
     return id
 end
 
+function ffxivminion.NodeDistance(self, id)
+	local neighbor = self:GetNeighbor(id)
+    if (neighbor) then
+		local cost = neighbor.cost or 5
+		local levelmin = neighbor.levelmin or 0
+		if (levelmin > 0 and Player.level < levelmin and Player:GetSyncLevel() == 0) then
+			cost = cost * 3
+		end
+		local requiredlevel = neighbor.requiredlevel or 0
+		if (requiredlevel > 0 and Player.level < requiredlevel and Player:GetSyncLevel() == 0) then
+			cost = 999
+		end
+		if (TableSize(neighbor.gates) == 1 and neighbor.gates[1].a ~= nil and gUseAirships == "0") then
+			cost = 999
+		end
 
+        return cost
+    end
+    
+    return nil
+end
 
 -- Register Event Handlers
 RegisterEventHandler("Module.Initalize",ffxivminion.HandleInit)

@@ -138,6 +138,12 @@ strings =
 		
 		
 		--new SKM stuff
+		alias							= "Alias",
+		cdIsReady						= "CD Is Ready",
+		cdNotReady						= "CD Not Ready",
+		cdTimeLT						= "CD Time <",
+		cdTimeGT						= "CD Time >",
+		nextSkillPrio					= "Next Skill Prio",
 		skmTYPE							= "Action Type",
 		skmSTYPE					 	= "Skill Type",
 		skmCombat						= "Combat Status",
@@ -577,6 +583,24 @@ strings =
 		save							= "Save",
 		move							= "Move",
 		distance						= "Distance",
+		
+		importExport 					= "Import / Export",
+		autoExport						= "Auto Export",
+		fileName						= "File Name",
+		gatherLocations					= "Gather Locations",
+		huntLocations					= "Hunt Locations",
+		basicExport						= "Basic Export",
+		basicImport						= "Basic Import",
+		markerImport					= "Marker Import",
+		overwriteExisting				= "Overwrite Existing",
+		allMarkers						= "All Markers",
+		exportSettings					= "Export Settings",
+		importSettings					= "Import Settings",
+		exportGlobal					= "Export Global",
+		importGlobal					= "Import Global",
+		
+		minimumCP						= "Minimum CP",
+		craftAmount						= "Craft Amount",
     },                                  
     ["cn"] =                            
     {                               
@@ -724,6 +748,12 @@ strings =
 		AutoRezz						= "复活敌方",
 		Fightstyle						= "战斗风格",
 		
+		alias							= "Alias",
+		cdIsReady						= "CD Is Ready",
+		cdNotReady						= "CD Not Ready",
+		cdTimeLT						= "CD Time <",
+		cdTimeGT						= "CD Time >",
+		nextSkillPrio					= "Next Skill Prio",
 		skmTYPE							= "Action Type",
 		skmSTYPE					 	= "Skill Type",
 		skmCombat						= "Combat Status",
@@ -1174,6 +1204,24 @@ strings =
 		eorzeaTime						= "Eorzea Time",
 		potionHP						= "Potion HP",
 		potionMP						= "Potion MP",
+		
+		importExport 					= "Import / Export",
+		autoExport						= "Auto Export",
+		fileName						= "File Name",
+		gatherLocations					= "Gather Locations",
+		huntLocations					= "Hunt Locations",
+		basicExport						= "Basic Export",
+		basicImport						= "Basic Import",
+		markerImport					= "Marker Import",
+		overwriteExisting				= "Overwrite Existing",
+		allMarkers						= "All Markers",
+		exportSettings					= "Export Settings",
+		importSettings					= "Import Settings",
+		exportGlobal					= "Export Global",
+		importGlobal					= "Import Global",
+		
+		minimumCP						= "Minimum CP",
+		craftAmount						= "Craft Amount",
 	},
     ["jp"] =
     {
@@ -1309,6 +1357,12 @@ strings =
 		AdvancedSettings				= "高度設定",
 		Fightstyle						= "戦闘スタイル",
 		
+		alias							= "Alias",
+		cdIsReady						= "CD Is Ready",
+		cdNotReady						= "CD Not Ready",
+		cdTimeLT						= "CD Time <",
+		cdTimeGT						= "CD Time >",
+		nextSkillPrio					= "Next Skill Prio",
 		skmTYPE							= "Action Type",
 		skmSTYPE					 	= "Skill Type",
 		skmCombat						= "Combat Status",
@@ -1724,6 +1778,24 @@ strings =
 		eorzeaTime						= "Eorzea Time",
 		potionHP						= "Potion HP",
 		potionMP						= "Potion MP",
+		
+		importExport 					= "Import / Export",
+		autoExport						= "Auto Export",
+		fileName						= "File Name",
+		gatherLocations					= "Gather Locations",
+		huntLocations					= "Hunt Locations",
+		basicExport						= "Basic Export",
+		basicImport						= "Basic Import",
+		markerImport					= "Marker Import",
+		overwriteExisting				= "Overwrite Existing",
+		allMarkers						= "All Markers",
+		exportSettings					= "Export Settings",
+		importSettings					= "Import Settings",
+		exportGlobal					= "Export Global",
+		importGlobal					= "Import Global",
+		
+		minimumCP						= "Minimum CP",
+		craftAmount						= "Craft Amount",
 	},   
     ["de"] =
     {
@@ -1859,6 +1931,12 @@ strings =
 		AdvancedSettings				= "Advanced Settings",
 		Fightstyle						= "Fightstyle",
 		
+		alias							= "Alias",
+		cdIsReady						= "CD Is Ready",
+		cdNotReady						= "CD Not Ready",
+		cdTimeLT						= "CD Time <",
+		cdTimeGT						= "CD Time >",
+		nextSkillPrio					= "Next Skill Prio",
 		skmTYPE							= "Action Type",
 		skmSTYPE					 	= "Skill Type",
 		skmCombat						= "Combat Status",
@@ -2275,6 +2353,24 @@ strings =
 		eorzeaTime						= "Eorzea Time",
 		potionHP						= "Potion HP",
 		potionMP						= "Potion MP",
+		
+		importExport 					= "Import / Export",
+		autoExport						= "Auto Export",
+		fileName						= "File Name",
+		gatherLocations					= "Gather Locations",
+		huntLocations					= "Hunt Locations",
+		basicExport						= "Basic Export",
+		basicImport						= "Basic Import",
+		markerImport					= "Marker Import",
+		overwriteExisting				= "Overwrite Existing",
+		allMarkers						= "All Markers",
+		exportSettings					= "Export Settings",
+		importSettings					= "Import Settings",
+		exportGlobal					= "Export Global",
+		importGlobal					= "Import Global",
+		
+		minimumCP						= "Minimum CP",
+		craftAmount						= "Craft Amount",
 	},     
     ["fr"] =
     {
@@ -2410,6 +2506,12 @@ strings =
 		AdvancedSettings				= "Configuration Avancé",
 		Fightstyle						= "Fightstyle",
 		
+		alias							= "Alias",
+		cdIsReady						= "CD Is Ready",
+		cdNotReady						= "CD Not Ready",
+		cdTimeLT						= "CD Time <",
+		cdTimeGT						= "CD Time >",
+		nextSkillPrio					= "Next Skill Prio",
 		skmTYPE							= "Action Type",
 		skmSTYPE					 	= "Skill Type",
 		skmCombat						= "Combat Status",
@@ -2825,6 +2927,24 @@ strings =
 		eorzeaTime						= "Eorzea Time",
 		potionHP						= "Potion HP",
 		potionMP						= "Potion MP",
+		
+		importExport 					= "Import / Export",
+		autoExport						= "Auto Export",
+		fileName						= "File Name",
+		gatherLocations					= "Gather Locations",
+		huntLocations					= "Hunt Locations",
+		basicExport						= "Basic Export",
+		basicImport						= "Basic Import",
+		markerImport					= "Marker Import",
+		overwriteExisting				= "Overwrite Existing",
+		allMarkers						= "All Markers",
+		exportSettings					= "Export Settings",
+		importSettings					= "Import Settings",
+		exportGlobal					= "Export Global",
+		importGlobal					= "Import Global",
+		
+		minimumCP						= "Minimum CP",
+		craftAmount						= "Craft Amount",
 	},       
     ["ru"] =
     {
@@ -2960,6 +3080,12 @@ strings =
 		AdvancedSettings				= "Advanced Settings",
 		Fightstyle						= "Fightstyle",
 		
+		alias							= "Alias",
+		cdIsReady						= "CD Is Ready",
+		cdNotReady						= "CD Not Ready",
+		cdTimeLT						= "CD Time <",
+		cdTimeGT						= "CD Time >",
+		nextSkillPrio					= "Next Skill Prio",
 		skmTYPE							= "Action Type",
 		skmSTYPE					 	= "Skill Type",
 		skmCombat						= "Combat Status",
@@ -3375,6 +3501,24 @@ strings =
 		eorzeaTime						= "Eorzea Time",
 		potionHP						= "Potion HP",
 		potionMP						= "Potion MP",
+		
+		importExport 					= "Import / Export",
+		autoExport						= "Auto Export",
+		fileName						= "File Name",
+		gatherLocations					= "Gather Locations",
+		huntLocations					= "Hunt Locations",
+		basicExport						= "Basic Export",
+		basicImport						= "Basic Import",
+		markerImport					= "Marker Import",
+		overwriteExisting				= "Overwrite Existing",
+		allMarkers						= "All Markers",
+		exportSettings					= "Export Settings",
+		importSettings					= "Import Settings",
+		exportGlobal					= "Export Global",
+		importGlobal					= "Import Global",
+		
+		minimumCP						= "Minimum CP",
+		craftAmount						= "Craft Amount",
 	},    	
 
 }
@@ -3401,4 +3545,4 @@ function GetString(stringName)
 	end
 end
 
-RegisterEventHandler("FFXIVMINION.setlanguage", SetLanguage)
+RegisterEventHandler("MINION.setlanguage", SetLanguage)

@@ -112,6 +112,9 @@ function ffxiv_task_quest.QuestObjectiveChanged()
 end
 
 function ffxiv_task_quest.AddEquipItem(itemid, ignoreLevel, itemtype)
+	local itemtype = itemtype or 0
+	local ignoreLevel = ignoreLevel or false
+	
 	local itemTable = {type = itemtype}
 	local equipTable = ml_global_information.itemIDsToEquip[gProfile]
 	if(not equipTable) then
@@ -220,8 +223,15 @@ function c_nextquest:evaluate()
 		e_nextquest.quest = ffxiv_task_quest.questList[currQuest]
 		return true
 	end
+	
+	for id, quest in pairsByKeys(ffxiv_task_quest.questList) do
+		if (Quest:HasQuest(quest.id)) then
+			e_nextquest.quest = quest
+			return true
+		end
+	end
 
-	for id, quest in pairs(ffxiv_task_quest.questList) do
+	for id, quest in pairsByKeys(ffxiv_task_quest.questList) do
 		if (quest:canStart()) then
 			e_nextquest.quest = quest
 			return true
@@ -317,6 +327,9 @@ function ffxiv_task_quest.GUIVarUpdate(Event, NewVals, OldVals)
 				k == "gQuestAutoEquip" )
         then
             Settings.FFXIVMINION[k] = v
+		elseif (k == "gQuestKillCount") then
+			Settings.FFXIVMINION[k] = v
+			Settings.FFXIVMINION.questKillCount = tonumber(v)
         end
     end
     GUI_RefreshWindow(ffxivminion.Windows.Main.Name)

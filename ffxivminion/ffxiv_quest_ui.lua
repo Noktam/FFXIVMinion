@@ -68,8 +68,6 @@ QM.Variables = {
 	eTaskCommandString = 	{ default = "", 		profile = "commandstring", 		cast = "string"},
 	qTaskItemSelector = 	{default = 1, 		profile = "", 			cast = "number", onChange = "QM.PullTaskAddItem"},
 	eTaskItemSelector = 	{default = 1, 		profile = "", 			cast = "number", onChange = "QM.PullTaskEditItem"},
-	qTaskItemNameSelector = 	{default = 1, 		profile = "", 		cast = "string", onChange = "QM.PullTaskAddItemByName"},
-	eTaskItemNameSelector = 	{default = 1, 		profile = "", 		cast = "string", onChange = "QM.PullTaskEditItemByName"},
 	qTaskItemID = 	{ default = 0, 			profile = "itemid", 		cast = "number"},
 	eTaskItemID = 	{ default = 0, 			profile = "itemid", 		cast = "number"},
 	qTaskMesh = 	{ default = "", 		profile = "meshname", 		cast = "string"},
@@ -84,8 +82,8 @@ QM.Variables = {
 	eTaskQuestID = 	{ default = 0, 			profile = "questid", 		cast = "number"},
 	qTaskKillTarget = 	{ default = "",		profile = "id", 			cast = "number"},
 	eTaskKillTarget = 	{ default = "",		profile = "id", 			cast = "number"},
-	qTaskKillPriorities = 	{ default = "",		profile = "ids", 		cast = "string"},
-	eTaskKillPriorities = 	{ default = "",		profile = "ids", 		cast = "string"},
+	qTaskKillPriorities = 	{ default = "",		profile = "ids", 			cast = "string"},
+	eTaskKillPriorities = 	{ default = "",		profile = "ids", 			cast = "string"},
 	qTaskKillCount = 	{ default = 0, 		profile = "killcount", 		cast = "number"},
 	eTaskKillCount = 	{ default = 0, 		profile = "killcount", 		cast = "number"},
 	qTaskDelay = 		{ default = 0, 		profile = "delay", 			cast = "number"},
@@ -134,7 +132,7 @@ QM.Strings = {
 			end
 			return questlist
 		end,
-	QuestTasks = "start,accept,nav,interact,kill,dutykill,textcommand,useitem,useaction,vendor,equip,complete",
+	QuestTasks = "start,accept,nav,interact,kill,dutykill,textcommand,useitem,useaction,vendor,finish,complete",
 	DutyTasks = "kill,loot,interact",
 	QuestJobs = "None,ARCANIST,ARCHER,BARD,BLACKMAGE,CONJURER,DRAGOON,GLADIATOR,LANCER,MARAUDER,MONK,PALADIN,PUGILIST,SCHOLAR,SUMMONER,THAUMATURGE,WARRIOR,WHITEMAGE",
 	PreReqJobs = "All,ARCANIST,ARCHER,BARD,BLACKMAGE,CONJURER,DRAGOON,GLADIATOR,LANCER,MARAUDER,MONK,PALADIN,PUGILIST,SCHOLAR,SUMMONER,THAUMATURGE,WARRIOR,WHITEMAGE",
@@ -142,7 +140,7 @@ QM.Strings = {
 
 QM.Builds = {
 	Main = {
-		[1] = {5, "GUI_NewComboBox",QM.Windows.Main.name,strings[gCurrentLanguage].profileType,		"qProfileType",	strings[gCurrentLanguage].details, strings[gCurrentLanguage].questMode..","..strings[gCurrentLanguage].dutyMode},
+		[1] = {5, "GUI_NewComboBox",QM.Windows.Main.name,strings[gCurrentLanguage].profileType,		"qProfileType",	strings[gCurrentLanguage].details, strings[gCurrentLanguage].dutyMode..","..strings[gCurrentLanguage].questMode},
 		[2] = {5, "GUI_NewComboBox",QM.Windows.Main.name,strings[gCurrentLanguage].existingProfile, "qProfileName",	strings[gCurrentLanguage].details, "None"},
 		[3] = {4, "GUI_NewField", 	QM.Windows.Main.name,strings[gCurrentLanguage].newProfileName,	"qProfileNew",	strings[gCurrentLanguage].details},
 		[4] = {4, "GUI_NewButton", 	QM.Windows.Main.name,strings[gCurrentLanguage].createProfile, 	"QM.CreateProfile", strings[gCurrentLanguage].details},
@@ -317,15 +315,16 @@ QM.Builds = {
 			[9] = {4, "GUI_NewButton",	QM.Windows.StepManager.name,strings[gCurrentLanguage].questPullValues, "QM.LoadAddCurrentValues",strings[gCurrentLanguage].newQuestStep},
 			[10] = {4, "GUI_NewButton",	QM.Windows.StepManager.name,strings[gCurrentLanguage].questAddStep, "QM.AddStep",strings[gCurrentLanguage].newQuestStep},
 		},
-		["equip"] = {
+		["finish"] = {
 			[1] = {4, "GUI_NewField",	QM.Windows.StepManager.name,strings[gCurrentLanguage].stepCurrent,	"qStepNum",	strings[gCurrentLanguage].newQuestStep},
 			[2] = {5, "GUI_NewComboBox",QM.Windows.StepManager.name,strings[gCurrentLanguage].stepTask,	"qStepTask",strings[gCurrentLanguage].newQuestStep,	QM.Strings.QuestTasks},
 			[3] = {4, "GUI_NewField",	QM.Windows.StepManager.name,strings[gCurrentLanguage].stepMap,"qTaskMap",strings[gCurrentLanguage].newQuestStep},
 			[4] = {5, "GUI_NewComboBox",QM.Windows.StepManager.name,strings[gCurrentLanguage].stepMesh,"qTaskMesh",strings[gCurrentLanguage].newQuestStep, QM.Strings.Meshes },
-			[5] = {4, "GUI_NewField",	QM.Windows.StepManager.name,strings[gCurrentLanguage].stepItemID,"qTaskItemID", strings[gCurrentLanguage].newQuestStep},
-			[6] = {4, "GUI_NewField",	QM.Windows.StepManager.name,strings[gCurrentLanguage].stepDelay,"qTaskDelay",strings[gCurrentLanguage].newQuestStep},
-			[7] = {4, "GUI_NewButton",	QM.Windows.StepManager.name,strings[gCurrentLanguage].questPullValues, "QM.LoadAddCurrentValues",strings[gCurrentLanguage].newQuestStep},
-			[8] = {4, "GUI_NewButton",	QM.Windows.StepManager.name,strings[gCurrentLanguage].questAddStep, "QM.AddStep",strings[gCurrentLanguage].newQuestStep},
+			[5] = {4, "GUI_NewField",	QM.Windows.StepManager.name,strings[gCurrentLanguage].stepTarget,"qTaskNPC",strings[gCurrentLanguage].newQuestStep},
+			[6] = {4, "GUI_NewNumeric",	QM.Windows.StepManager.name,strings[gCurrentLanguage].stepReward,"qTaskRewardSlot",strings[gCurrentLanguage].newQuestStep},
+			[7] = {4, "GUI_NewField",	QM.Windows.StepManager.name,strings[gCurrentLanguage].stepDelay,"qTaskDelay",strings[gCurrentLanguage].newQuestStep},
+			[8] = {4, "GUI_NewButton",	QM.Windows.StepManager.name,strings[gCurrentLanguage].questPullValues, "QM.LoadAddCurrentValues",strings[gCurrentLanguage].newQuestStep},
+			[9] = {4, "GUI_NewButton",	QM.Windows.StepManager.name,strings[gCurrentLanguage].questAddStep, "QM.AddStep",strings[gCurrentLanguage].newQuestStep},
 		},
 		["complete"] = {
 			[1] = {4, "GUI_NewField",	QM.Windows.StepManager.name,strings[gCurrentLanguage].stepCurrent,	"qStepNum",	strings[gCurrentLanguage].newQuestStep},
@@ -425,23 +424,21 @@ QM.Builds = {
 			[8] = {4, "GUI_NewButton",	QM.Windows.StepEditor.name,strings[gCurrentLanguage].questItemEditor, "QMToggleItemEditor",strings[gCurrentLanguage].editQuestStep},
 			[9] = {4, "GUI_NewButton",	QM.Windows.StepEditor.name,strings[gCurrentLanguage].questPullValues, "QM.LoadEditCurrentValues",strings[gCurrentLanguage].editQuestStep},
 		},
-		["equip"] = {
+		["finish"] = {
 			[1] = {5, "GUI_NewComboBox",QM.Windows.StepEditor.name,strings[gCurrentLanguage].stepTask,	"eStepTask",strings[gCurrentLanguage].editQuestStep,	QM.Strings.QuestTasks},
 			[2] = {4, "GUI_NewField",	QM.Windows.StepEditor.name,strings[gCurrentLanguage].stepMap,"eTaskMap",strings[gCurrentLanguage].editQuestStep},
 			[3] = {5, "GUI_NewComboBox",QM.Windows.StepEditor.name,strings[gCurrentLanguage].stepMesh,"eTaskMesh",strings[gCurrentLanguage].editQuestStep, QM.Strings.Meshes },
-			--[4] = {4, "GUI_NewField",	QM.Windows.StepEditor.name,strings[gCurrentLanguage].stepItemSelector,"eTaskItemNameSelector",strings[gCurrentLanguage].editQuestStep},
-			[4] = {4, "GUI_NewField",	QM.Windows.StepEditor.name,strings[gCurrentLanguage].stepItemID,"eTaskItemID", strings[gCurrentLanguage].editQuestStep},
-			[5] = {4, "GUI_NewField",	QM.Windows.StepEditor.name,strings[gCurrentLanguage].stepDelay,"eTaskDelay",strings[gCurrentLanguage].editQuestStep},
+			[4] = {4, "GUI_NewField",	QM.Windows.StepEditor.name,strings[gCurrentLanguage].stepTarget,"eTaskNPC",strings[gCurrentLanguage].editQuestStep},
+			[5] = {4, "GUI_NewNumeric",	QM.Windows.StepEditor.name,strings[gCurrentLanguage].stepReward,"eTaskRewardSlot",strings[gCurrentLanguage].editQuestStep},
 			[6] = {4, "GUI_NewButton",	QM.Windows.StepEditor.name,strings[gCurrentLanguage].questPullValues, "QM.LoadEditCurrentValues",strings[gCurrentLanguage].editQuestStep},
-		},
+		},	
 		["complete"] = {
 			[1] = {5, "GUI_NewComboBox",QM.Windows.StepEditor.name,strings[gCurrentLanguage].stepTask,	"eStepTask",strings[gCurrentLanguage].editQuestStep,	QM.Strings.QuestTasks},
 			[2] = {4, "GUI_NewField",	QM.Windows.StepEditor.name,strings[gCurrentLanguage].stepMap,"eTaskMap",strings[gCurrentLanguage].editQuestStep},
 			[3] = {5, "GUI_NewComboBox",QM.Windows.StepEditor.name,strings[gCurrentLanguage].stepMesh,"eTaskMesh",strings[gCurrentLanguage].editQuestStep, QM.Strings.Meshes },
 			[4] = {4, "GUI_NewField",	QM.Windows.StepEditor.name,strings[gCurrentLanguage].stepTarget,"eTaskNPC",strings[gCurrentLanguage].editQuestStep},
 			[5] = {4, "GUI_NewNumeric",	QM.Windows.StepEditor.name,strings[gCurrentLanguage].stepReward,"eTaskRewardSlot",strings[gCurrentLanguage].editQuestStep},
-			[6] = {4, "GUI_NewField",	QM.Windows.StepEditor.name,strings[gCurrentLanguage].stepDelay,"eTaskDelay",strings[gCurrentLanguage].editQuestStep},
-			[7] = {4, "GUI_NewButton",	QM.Windows.StepEditor.name,strings[gCurrentLanguage].questPullValues, "QM.LoadEditCurrentValues",strings[gCurrentLanguage].editQuestStep},
+			[6] = {4, "GUI_NewButton",	QM.Windows.StepEditor.name,strings[gCurrentLanguage].questPullValues, "QM.LoadEditCurrentValues",strings[gCurrentLanguage].editQuestStep},
 		},	
 	},
 }
@@ -475,7 +472,6 @@ end
 --**************************************************************************************************************************************
 function QM.GUIVarUpdate(Event, NewVals, OldVals)
 	for k,v in pairs(NewVals) do
-		--d(tostring(k)..","..tostring(v)..","..tostring(type(v)))
 		local var = QM.Variables[tostring(k)]
 		if (var ~= nil) then
 			Settings.FFXIVMINION[k] = v
@@ -505,7 +501,6 @@ function QM.LoadProfile()
 		else
 			QM.Encounters = {}
 		end
-		QM.RefreshEncounters()
 	else
 		info = persistence.load(QM.QuestPath..qProfileName..".info")
 		if (ValidTable(info) and ValidTable(info.quests)) then
@@ -523,12 +518,8 @@ function QM.CreateProfile()
 	
 	if (qProfileType == "Duty") then
 		persistence.store(QM.DutyPath..qProfileNew..".info",starter)
-		QM.Encounters = {}
-		QM.RefreshEncounters()
 	else
 		persistence.store(QM.QuestPath..qProfileNew..".info",starter)
-		QM.Quests = {}
-		QM.RefreshQuests()
 	end
 	
 	QM.LoadTypeOptions()
@@ -1293,16 +1284,7 @@ function QM.PullTaskEditItem()
 	local slot = tonumber(eTaskItemSelector)
 	QM.LoadItemSlot(slot, "eTaskItemID")
 end
---[[
-function QM.PullTaskAddItemByName()
-	local slot = tonumber(qTaskItemSelector)
-	QM.LoadItemSlot(slot, "qTaskItemID")
-end
-function QM.PullTaskEditItemName()
-	local slot = tonumber(eTaskItemSelector)
-	QM.LoadItemSlot(slot, "eTaskItemID")
-end
---]]
+
 function QM.LoadItemSlot( numSlot, strVar )
 	local inv = Inventory("type=2004")
 	if (inv) then
@@ -1358,7 +1340,11 @@ function QM.LoadWindows()
 	for k,v in pairs(windows) do
 		if (TableSize(QM.Builds[k]) > 0) then
 			local wname = v.name
-			GUI_NewWindow	(wname,WI.x,WI.y,v.width,v.height)
+			if (wname == strings[gCurrentLanguage].profileManager) then
+				GUI_NewWindow	(wname,WI.x,WI.y,v.width,v.height)
+			else
+				GUI_NewWindow	(wname,WI.x,WI.y,v.width,v.height,"",true)
+			end 
 			QM.LoadWindowFields(k)
 			GUI_SizeWindow	(wname,v.width,v.height)
 			GUI_RefreshWindow(wname)

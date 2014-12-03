@@ -90,7 +90,7 @@ function GetNearestGrindAttackable()
 	--Nearest specified hunt, ignore levels here, assume players know what they wanted to kill.
 	block = 5
 	if (not IsNullString(huntString)) then
-		el = EntityList("contentid="..huntString..",shortestpath,alive,attackable,onmesh")
+		el = EntityList("contentid="..huntString..",shortestpath,fateid=0,alive,attackable,onmesh")
 		
 		if ( el ) then
 			local i,e = next(el)
@@ -165,12 +165,42 @@ function GetNearestFateAttackable()
     local fate = GetClosestFate(myPos)
 	
     if (fate ~= nil) then
+		el = EntityList("shortestpath,alive,attackable,targetingme,onmesh,maxdistance="..tostring(ml_global_information.AttackRange)..",fateid="..tostring(fate.id))
+
+        if ( el ) then
+            local i,e = next(el)
+            if (i~=nil and e~=nil) then
+				epos = shallowcopy(e.pos)
+				local dist = Distance2D(epos.x,epos.z,fate.x,fate.z)
+				if (dist <= fate.radius) then
+					return e
+				end
+            end
+        end	
+    
+        el = EntityList("shortestpath,alive,attackable,targetingme,onmesh,fateid="..tostring(fate.id))            
+            
+        if ( el ) then
+            local i,e = next(el)
+            if (i~=nil and e~=nil) then
+                epos = shallowcopy(e.pos)
+				local dist = Distance2D(epos.x,epos.z,fate.x,fate.z)
+				if (dist <= fate.radius) then
+					return e
+				end
+            end
+        end
+		
         el = EntityList("shortestpath,alive,attackable,onmesh,maxdistance="..tostring(ml_global_information.AttackRange)..",fateid="..tostring(fate.id))
 
         if ( el ) then
             local i,e = next(el)
             if (i~=nil and e~=nil) then
-                return e
+				epos = shallowcopy(e.pos)
+				local dist = Distance2D(epos.x,epos.z,fate.x,fate.z)
+				if (dist <= fate.radius) then
+					return e
+				end
             end
         end	
     
@@ -179,7 +209,11 @@ function GetNearestFateAttackable()
         if ( el ) then
             local i,e = next(el)
             if (i~=nil and e~=nil) then
-                return e
+                epos = shallowcopy(e.pos)
+				local dist = Distance2D(epos.x,epos.z,fate.x,fate.z)
+				if (dist <= fate.radius) then
+					return e
+				end
             end
         end
     end
@@ -652,7 +686,13 @@ function GetPVPTarget()
     
 	local enemyParty = nil
 	if (Player.localmapid == 376) then
-		enemyParty = EntityList("shortestpath,onmesh,attackable,alive,chartype=4,maxdistance=45")
+		enemyParty = EntityList("shortestpath,onmesh,attackable,alive,targetingme,chartype=4,maxdistance=45")
+		if(not ValidTable(enemyParty)) then
+			enemyParty = EntityList("shortestpath,onmesh,attackable,alive,chartype=4,maxdistance=45")
+		end
+		if(not ValidTable(enemyParty)) then
+			enemyParty = EntityList("shortestpath,onmesh,attackable,alive,maxdistance=45")
+		end
 	else
 		enemyParty = EntityList("onmesh,attackable,alive,chartype=4")
 	end
@@ -920,7 +960,7 @@ function GetDutyTarget( maxHP )
 end
 
 function GetNearestAggro()
-	taskName = ml_task_hub:CurrentTask().name
+	taskName = ml_task_hub:ThisTask().name
 	
 	if (not IsNullString(excludeString)) then
 		if (taskName == "LT_GRIND") then
@@ -1097,8 +1137,10 @@ function HasBuffs(entity, buffIDs, dura, ownerid)
 		for _andid in StringSplit(_orids,"+") do
 			found = false
 			for i, buff in pairs(buffs) do
-				if (buff.id == tonumber(_andid) and (duration == 0 or buff.duration > duration) 
-					and (owner == 0 or buff.ownerid == owner)) then 
+				if (buff.id == tonumber(_andid) 
+					and (duration == 0 or buff.duration > duration or HasInfiniteDuration(buff.id)) 
+					and (owner == 0 or buff.ownerid == owner)) 
+				then 
 					found = true 
 				end
 			end
@@ -1129,8 +1171,10 @@ function MissingBuffs(entity, buffIDs, dura, ownerid)
     	missing = true
 		for _andid in StringSplit(_orids,"+") do
 			for i, buff in pairs(buffs) do
-				if (buff.id == tonumber(_andid) and (duration == 0 or buff.duration > duration)
-					and (owner == 0 or buff.ownerid == owner)) then 
+				if (buff.id == tonumber(_andid) 
+					and (duration == 0 or buff.duration > duration or HasInfiniteDuration(buff.id))
+					and (owner == 0 or buff.ownerid == owner)) 
+				then
 					missing = false 
 				end
 			end
@@ -1146,6 +1190,13 @@ function MissingBuffs(entity, buffIDs, dura, ownerid)
     return false
 end
 
+function HasInfiniteDuration(id)
+	infiniteDurationAbilities = {
+		[614] = true,
+	}
+	
+	return infiniteDurationAbilities[id] or false
+end
 
 function ActionList:IsCasting()
 	return (Player.castinginfo.channelingid ~= 0 or Player.castinginfo.castid == 4)
@@ -1277,6 +1328,53 @@ function IsBehind(entity)
             return true
         end
     end
+    return false
+end
+
+function IsFront(entity)
+	if not entity or entity.id == Player.id then return false end
+	
+    if ((entity.distance2d - (entity.hitradius + 1)) <= ml_global_information.AttackRange) then
+        local entityHeading = nil
+        
+        if (entity.pos.h < 0) then
+            entityHeading = entity.pos.h + 2 * math.pi
+        else
+            entityHeading = entity.pos.h
+        end
+		
+        local entityAngle = math.atan2(Player.pos.x - entity.pos.x, Player.pos.z - entity.pos.z) 
+        local deviation = entityAngle - entityHeading
+        local absDeviation = math.abs(deviation)
+		
+        local leftover = absDeviation - math.pi
+        if (leftover > (math.pi * .75)) then
+            return true
+        end
+    end
+    return false
+end
+
+function EntityIsFront(entity)
+	if not entity or entity.id == Player.id then return false end
+	
+	local playerHeading = nil
+	if (Player.pos.h < 0) then
+		playerHeading = Player.pos.h + 2 * math.pi
+	else
+		playerHeading = Player.pos.h
+	end
+	
+	local playerAngle = math.atan2(entity.pos.x - Player.pos.x, entity.pos.z - Player.pos.z)  	
+	local deviation = playerAngle - playerHeading
+	local absDeviation = math.abs(deviation)
+	
+	local leftover = math.abs(absDeviation - math.pi)
+	
+	if (leftover > (math.pi * .75)) then
+		return true
+	end
+		
     return false
 end
 
@@ -1556,6 +1654,10 @@ function IsInParty(id)
 end
 
 function InCombatRange(targetid)
+	if (gBotRunning == "0") then
+		return false
+	end
+	
 	local target = {}
 	
 	--Quick change here to allow passing of a target or just the ID.
@@ -1786,13 +1888,6 @@ function Dismount()
 end
 
 function Repair()
-	local list = Player:GetGatherableSlotList()
-	local synth = Crafting:SynthInfo()	
-	
-	if (ValidTable(list) or ValidTable(synth)) then
-		return false
-	end
-	
 	if (gRepair == "1") then
 		local eq = Inventory("type=1000")
 		for i,e in pairs(eq) do
@@ -1878,7 +1973,9 @@ end
 
 function IsGardening(itemid)
 	itemid = itemid or 0
-	return ((itemid >= 7715 and itemid <= 7767) or itemid == 8024)
+	return ((itemid >= 7715 and itemid <= 7767) 
+			or itemid == 8024
+			or itemid == 5365)
 end
 
 function IsUnspoiled(contentid)
@@ -1897,7 +1994,9 @@ function GetRoleString(jobID)
         jobID == FFXIV.JOBS.MONK or
         jobID == FFXIV.JOBS.PUGILIST or
         jobID == FFXIV.JOBS.SUMMONER or
-        jobID == FFXIV.JOBS.THAUMATURGE
+        jobID == FFXIV.JOBS.THAUMATURGE or
+		jobID == FFXIV.JOBS.ROGUE or
+		jobID == FFXIV.JOBS.NINJA
     then
         return strings[gCurrentLanguage].dps
     elseif
@@ -1920,7 +2019,9 @@ function IsMeleeDPS(jobID)
 	return 	jobID == FFXIV.JOBS.MONK or
 			jobID == FFXIV.JOBS.PUGILIST or
 			jobID == FFXIV.JOBS.DRAGOON or
-			jobID == FFXIV.JOBS.LANCER
+			jobID == FFXIV.JOBS.LANCER or
+			jobID == FFXIV.JOBS.ROGUE or
+			jobID == FFXIV.JOBS.NINJA
 end
 
 function IsRangedDPS(jobID)
@@ -1987,8 +2088,9 @@ function GetLocalAetheryte()
     return nil
 end
 
-function GetAetheryteByMapID(id)
-	--Convert some special cases to other ID's, for cities.
+function GetAetheryteByMapID(id, p)
+	local pos = p
+	
 	local mapid = Player.localmapid
 	if (id == 133 and mapid ~= 132) then
 		id = 132
@@ -2004,19 +2106,6 @@ function GetAetheryteByMapID(id)
 	then
 		return nil
 	end
-	
-	local list = Player:GetAetheryteList()
-	for index,aetheryte in ipairs(list) do
-		if (aetheryte.territory == id) then
-			return id, aetheryte.id
-		end
-	end
-    
-    return nil
-end
-
-function GetClosestAetheryteToMapIDPos(mapid, p)
-	local pos = p
 	
 	sharedMaps = {
 		[153] = { name = "South Shroud",
@@ -2042,22 +2131,87 @@ function GetClosestAetheryteToMapIDPos(mapid, p)
 	}
 	
 	local list = Player:GetAetheryteList()
-	if (sharedMaps[mapid] == nil) then
+	if (not pos or not sharedMaps[id]) then
 		for index,aetheryte in ipairs(list) do
-			if (aetheryte.territory == mapid) then
+			if (aetheryte.territory == id) then
+				return id, aetheryte.id
+			end
+		end
+	else
+		local map = sharedMaps[id]
+		if (id == 153 or id == 138 or id == 146 or id == 147) then
+			local distance1 = Distance2D(pos.x, pos.z, map[1].x, map[1].z)
+			local distance2 = Distance2D(pos.x, pos.z, map[2].x, map[2].z)
+			return id, ((distance1 < distance2) and map[1].id) or map[2].id
+		elseif (id == 137) then
+			return id, ((pos.x > 218 and pos.z > 51) and map[1].id) or map[2].id
+		end
+	end
+	
+	return nil
+end
+
+function GetClosestAetheryteToMapIDPos(id, p)
+	local pos = p
+	
+	local mapid = Player.localmapid
+	if (id == 133 and mapid ~= 132) then
+		id = 132
+	elseif (id == 128 and mapid ~= 129) then
+		id = 129
+	elseif (id == 131 and mapid ~= 130) then
+		id = 130
+	end
+	
+	if 	(mapid == 131 and id == 130) or
+		(mapid == 128 and id == 129) or
+		(mapid == 133 and id == 133)
+	then
+		return nil
+	end
+	
+	sharedMaps = {
+		[153] = { name = "South Shroud",
+			[1] = { name = "Quarrymill", id = 5, x = 177, z = -65},
+			[2] = { name = "Camp Tranquil", id = 6, x = -229, z = 352},
+		},
+		[137] = {name = "Eastern La Noscea",
+			[1] = { name = "Costa Del Sol", id = 11, x = 0, z = 0},
+			[2] = { name = "Wineport", id = 12, x = 0, z = 0},
+		},
+		[138] = {name = "Western La Noscea",
+			[1] = { name = "Swiftperch", id = 13, x = 652, z = -507},
+			[2] = { name = "Aleport", id = 14, x = 261, z = 223},
+		},
+		[146] = {name = "Southern Thanalan",
+			[1] = { name = "Little Ala Mhigo", id = 19, x = -152, z = -419},
+			[2] = { name = "Forgotten Springs", id = 20, x = 330, z = 405},
+		},
+		[147] = {name = "Northern Thanalan",
+			[1] = { name = "Bluefog", id = 21, x = 24, z = 452},
+			[2] = { name = "Ceruleum", id = 22, x = -33, z = -32},
+		},
+	}
+	
+	local list = Player:GetAetheryteList()
+	if (sharedMaps[id] == nil) then
+		for index,aetheryte in ipairs(list) do
+			if (aetheryte.territory == id) then
 				return aetheryte.id
 			end
 		end
 	else
-		local map = sharedMaps[mapid]
-		if (mapid == 153 or mapid == 138 or mapid == 146 or mapid == 147) then
+		local map = sharedMaps[id]
+		if (id == 153 or id == 138 or id == 146 or id == 147) then
 			local distance1 = Distance2D(pos.x, pos.z, map[1].x, map[1].z)
 			local distance2 = Distance2D(pos.x, pos.z, map[2].x, map[2].z)
 			return ((distance1 < distance2) and map[1].id) or map[2].id
-		elseif (mapid == 137) then
+		elseif (id == 137) then
 			return ((pos.x > 218 and pos.z > 51) and map[1].id) or map[2].id
 		end
 	end
+	
+	return nil
 end
 
 function MoveTo(X,Y,Z, stoppingdistance, followmovement, randomizePaths)

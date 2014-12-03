@@ -86,6 +86,9 @@ function ffxiv_quest_task:Init()
 	
 	--its tempting to make autoequip an overwatch cne but there are too many states 
 	--when the client does not allow gear changes
+	local ke_equipReward = ml_element:create( "EquipReward", c_equipreward, e_equipreward, 30 )
+    self:add( ke_equipReward, self.process_elements)
+	
 	local ke_equip = ml_element:create( "Equip", c_equip, e_equip, 25 )
     self:add( ke_equip, self.process_elements)
 	
@@ -230,7 +233,7 @@ function ffxiv_quest_complete:Init()
     self:add( ke_questHandover, self.process_elements)
 
 	local ke_questComplete = ml_element:create( "QuestComplete", c_questcomplete, e_questcomplete, 15 )
-    self:add( ke_questComplete, self.overwatch_elements)	
+    self:add( ke_questComplete, self.process_elements)	
 	
 	local ke_questSelectConvIndex = ml_element:create( "QuestSelectConvIndex", c_questselectconvindex, e_questselectconvindex, 12 )
     self:add( ke_questSelectConvIndex, self.process_elements)
@@ -273,21 +276,23 @@ function ffxiv_quest_interact:task_complete_eval()
 	--self.isQuestObject should only be set after we interact with the object
 	--so if its not targetable or its gone (for doors that make you leave/enter rooms)
 	--then the task is complete
-	
 	local target = Player:GetTarget()
-	if	(target and (target.type == 7 or target.type == 5 or target.type == 3)) then
-		if (ActionList:IsCasting()) then
+	if (target and (target.type == 7 or target.type == 5 or target.type == 3)) then
+		if(ActionList:IsCasting()) then
 			return false
 		end
 	end
 	
-	local id = self.params["id"]
-    if (id and id > 0) then
-		local el = EntityList("nearest,maxdistance=10,contentid="..tostring(id))
-		if(ValidTable(el)) then
-			local id, entity = next(el)
-			if	(ValidTable(entity) and entity.type == 7) then
-				return not entity.targetable
+	local disableTargetCheck = self.params["disabletargetcheck"]
+	if (not disableTargetCheck) then
+		local id = ml_task_hub:ThisTask().params["id"]
+		if (id and id > 0) then
+			local el = EntityList("nearest,maxdistance=10,contentid="..tostring(id))
+			if(ValidTable(el)) then
+				local id, entity = next(el)
+				if(ValidTable(entity) and entity.type == 7) then
+					return not entity.targetable
+				end
 			end
 		end
 	end
@@ -327,6 +332,9 @@ function ffxiv_quest_interact:Init()
 	
 	local ke_questInteract = ml_element:create( "QuestInteract", c_questinteract, e_questinteract, 5 )
     self:add( ke_questInteract, self.process_elements)
+	
+	local ke_questItemCastDelay = ml_element:create( "QuestInteractDelay", c_questitemcastdelay, e_questitemcastdelay, 3 )
+    self:add( ke_questItemCastDelay, self.process_elements)
 	
 	local ke_questIdle = ml_element:create( "QuestIdleCheck", c_questidle, e_questidle, 01 )
     self:add( ke_questIdle, self.process_elements)
@@ -395,6 +403,9 @@ function ffxiv_quest_kill:Init()
 	local ke_flee = ml_element:create( "Flee", c_questflee, e_questflee, 15 )
     self:add( ke_flee, self.overwatch_elements)
 	
+	local ke_useitemonhostile = ml_element:create( "UseItem", c_questuseitemonhostile, e_questuseitemonhostile, 05 )
+    self:add( ke_useitemonhostile, self.overwatch_elements)
+	
 	self:AddTaskCheckCEs()
 end
 
@@ -458,11 +469,9 @@ function ffxiv_quest_dutykill.Create()
     newinst.overwatch_elements = {}
     newinst.name = "QUEST_DUTYKILL"
 	newinst.currentPrio = 999
-	--newinst.lastTargetFound = Now()
     
     newinst.params = {}
 	newinst.stepCompleted = false
-	newinst.targetid = 0
     
     return newinst
 end
@@ -471,9 +480,6 @@ function ffxiv_quest_dutykill:Init()
     --priority kill runs in overwatch so it can switch targets when necessary
 	local ke_questMoveToHealer = ml_element:create( "QuestMoveToHealer", c_questmovetohealer, e_questmovetohealer, 25 )
     self:add( ke_questMoveToHealer, self.overwatch_elements)
-	
-	--local ke_questTrackTarget = ml_element:create( "QuestTrackTarget", c_questtracktarget, e_questtracktarget, 23 )
-    --self:add( ke_questTrackTarget, self.overwatch_elements)
 	
 	local ke_questPriorityKill = ml_element:create( "QuestPriorityKill", c_questprioritykill, e_questprioritykill, 20 )
     self:add( ke_questPriorityKill, self.overwatch_elements)
@@ -493,15 +499,11 @@ end
 
 function ffxiv_quest_dutykill:task_complete_eval()
 	local mapid = self.params["mapid"]
-	local disableMapCheck = self.params["disablemapcheck"] or false
-	--local failtime = self.params["failtime"] or 120000
-
-	return ((Player.localmapid ~= mapid or disableMapCheck) and ffxiv_task_quest.QuestObjectiveChanged()) 
-	--or (not target and TimeSince(self.lastTargetFound) > failtime)))
+	return Player.localmapid ~= mapid and ffxiv_task_quest.QuestObjectiveChanged()
 end
 
 function ffxiv_quest_dutykill:task_fail_eval()
-	return Player.hp.percent < 10
+	return Player.hp.percent == 0
 end
 
 function ffxiv_quest_dutykill:task_fail_execute()
@@ -578,6 +580,14 @@ function ffxiv_quest_killaggro:task_complete_eval()
 		return false
 	end
 	
+	if (ValidTable(Player.pet)) then
+		el = EntityList("alive,attackable,onmesh,targeting="..tostring(Player.pet.id))
+		if (ValidTable(el)) then
+			self.failTimer = 0
+			return false
+		end
+	end
+	
 	if (self.failTimer == 0) then
 		if (self.params.failtime and self.params.failtime > 0) then
 			self.failTimer = Now() + self.params.failtime
@@ -599,11 +609,12 @@ function ffxiv_quest_killaggro:task_complete_execute()
 end
 
 function ffxiv_quest_killaggro:task_fail_eval()
-	return (ffxiv_task_quest.currentQuest:isComplete())
+	return (Player.hp.percent == 0)
 end
 
 function ffxiv_quest_killaggro:task_fail_execute()
-	quest_step_complete_execute()
+	self:Invalidate()
+	ffxiv_task_quest.ResetStep()
 end
 
 ------------------------------------------------------
@@ -612,6 +623,7 @@ end
 
 ffxiv_quest_nav = inheritsFrom(ml_task)
 ffxiv_quest_nav.name = "QUEST_NAVIGATE"
+
 function ffxiv_quest_nav.Create()
     local newinst = inheritsFrom(ffxiv_quest_nav)
     
@@ -642,6 +654,9 @@ end
 
 function ffxiv_quest_nav:Init()
     --init ProcessOverWatch cnes
+	local ke_questMoveToMap = ml_element:create( "QuestMoveToMap", c_questmovetomap, e_questmovetomap, 25 )
+    self:add( ke_questMoveToMap, self.process_elements)
+	
 	local ke_questMoveToPos = ml_element:create( "QuestMoveToPos", c_questmovetopos, e_questmovetopos, 05 )
     self:add( ke_questMoveToPos, self.process_elements)
 
@@ -745,37 +760,41 @@ end
 
 function ffxiv_quest_useitem:task_complete_eval()
 	local target = Player:GetTarget()
-	if(target and (target.type == 7 or target.type == 3)) then
+	local usepos = ml_task_hub:ThisTask().params["usepos"]
+	if ((target and (target.type == 7 or target.type == 3)) or usepos) then
 		if (ActionList:IsCasting()) then
 			return false
 		end
 	end
+
+	local disableCountCheck = self.params["disablecountcheck"]
+	if (ml_task_hub:CurrentTask().params["itemid"]) then
+		local id = self.params["itemid"]
+		local item = Inventory:Get(id)
+		if (not ValidTable(item)) then
+			return true
+		elseif(item.count < self.startingCount and self.stepCompleted) then
+			return true
+		elseif(disableCountCheck and IsLoading() and self.stepCompleted) then
+			return true
+		end
+	end
 	
-	local id = ml_task_hub:ThisTask().params["id"]
-    if (id and id > 0) then
-		local el = EntityList("shortestpath,maxdistance=10,contentid="..tostring(id))
-		if (ValidTable(el)) then
-			local id, entity = next(el)
-			if(ValidTable(entity)) then
-				return not entity.targetable
+	local disableTargetCheck = self.params["disabletargetcheck"]
+	if (not disableTargetCheck) then
+		local id = self.params["id"]
+		if (id and id > 0) then
+			local el = EntityList("shortestpath,maxdistance=10,contentid="..tostring(id))
+			if (ValidTable(el)) then
+				local id, entity = next(el)
+				if(ValidTable(entity)) then
+					return not entity.targetable
+				end
 			end
 		end
 	end
 	
-	local disableCountCheck = ml_task_hub:CurrentTask().params["disablecountcheck"]
-	if (ml_task_hub:CurrentTask().params["itemid"]) then
-		local id = ml_task_hub:CurrentTask().params["itemid"]
-		local item = Inventory:Get(id)
-		if (not ValidTable(item)) then
-			return true
-		elseif(item.count < ml_task_hub:CurrentTask().startingCount and ml_task_hub:CurrentTask().stepCompleted) then
-			return true
-		elseif(disableCountCheck and IsLoading() and ml_task_hub:ThisTask().stepCompleted) then
-			return true
-		end
-	end
-	
-	return false
+	return self.stepCompleted
 end
 
 function ffxiv_quest_useitem:Init()
@@ -854,6 +873,9 @@ function ffxiv_quest_useaction:Init()
     local ke_questMoveToMap = ml_element:create( "QuestMoveToMap", c_questmovetomap, e_questmovetomap, 25 )
     self:add( ke_questMoveToMap, self.process_elements)
 	
+	local ke_rest = ml_element:create( "Rest", c_rest, e_rest, 22 )
+    self:add( ke_rest, self.process_elements)
+	
 	local ke_questMoveToPos = ml_element:create( "QuestMoveToPos", c_questmovetopos, e_questmovetopos, 20 )
     self:add( ke_questMoveToPos, self.process_elements)
 	
@@ -923,10 +945,13 @@ function ffxiv_quest_vendor:task_complete_eval()
 end
 
 function ffxiv_quest_vendor:Init()
+	local ke_questAtInteract = ml_element:create( "QuestAtInteract", c_atinteract, e_atinteract, 10 )
+    self:add( ke_questAtInteract, self.overwatch_elements)
+	
 	local ke_inDialog = ml_element:create( "QuestInDialog", c_indialog, e_indialog, 95 )
     self:add( ke_inDialog, self.process_elements)
 	
-    local ke_questMoveToMap = ml_element:create( "QuestMoveToMap", c_questmovetomap, e_questmovetomap, 25 )
+	local ke_questMoveToMap = ml_element:create( "QuestMoveToMap", c_questmovetomap, e_questmovetomap, 20 )
     self:add( ke_questMoveToMap, self.process_elements)
 	
 	local ke_questBuy = ml_element:create( "QuestBuy", c_questbuy, e_questbuy, 15 )
@@ -937,9 +962,6 @@ function ffxiv_quest_vendor:Init()
 	
 	local ke_questInteract = ml_element:create( "QuestInteract", c_questinteract, e_questinteract, 10 )
     self:add( ke_questInteract, self.process_elements)
-	
-	local ke_questAtInteract = ml_element:create( "QuestAtInteract", c_atinteract, e_atinteract, 10 )
-    self:add( ke_questAtInteract, self.overwatch_elements)
 	
 	local ke_questMoveToPos = ml_element:create( "QuestMoveToPos", c_questmovetopos, e_questmovetopos, 05 )
     self:add( ke_questMoveToPos, self.process_elements)
@@ -983,6 +1005,81 @@ function ffxiv_quest_equip:Init()
 	
 	--the questequip cne checks to see if we have equipped all requested items so its also a valid completion eval
 	self.task_complete_eval = function() return (not c_questequip:evaluate()) and (not c_equip:evaluate()) end
+	self.task_complete_execute = quest_step_complete_execute
+	self:AddTaskCheckCEs()
+end
+
+ffxiv_quest_finish = inheritsFrom(ml_task)
+ffxiv_quest_finish.name = "QUEST_FINISH"
+
+function ffxiv_quest_finish.Create()
+    local newinst = inheritsFrom(ffxiv_quest_finish)
+    
+    --ml_task members
+    newinst.valid = true
+    newinst.completed = false
+    newinst.subtask = nil
+    newinst.auxiliary = false
+    newinst.process_elements = {}
+    newinst.overwatch_elements = {}
+    newinst.name = "QUEST_FINISH"
+    
+    newinst.params = {}
+	newinst.stepCompleted = false
+    
+    return newinst
+end
+
+function ffxiv_quest_finish:task_complete_eval()
+	local target = Player:GetTarget()
+	if (target and (target.type == 7 or target.type == 5 or target.type == 3)) then
+		if(ActionList:IsCasting()) then
+			return false
+		end
+	end
+	
+	local id = ml_task_hub:ThisTask().params["id"]
+    if (id and id > 0) then
+		local el = EntityList("nearest,maxdistance=10,contentid="..tostring(id))
+		if(ValidTable(el)) then
+			local id, entity = next(el)
+			if(ValidTable(entity) and entity.type == 7) then
+				return not entity.targetable
+			end
+		end
+	end
+
+	return ml_task_hub:CurrentTask().stepCompleted
+end
+
+function ffxiv_quest_finish:Init()
+	local ke_inDialog = ml_element:create( "QuestInDialog", c_indialog, e_indialog, 95 )
+    self:add( ke_inDialog, self.process_elements)
+	
+    local ke_questMoveToMap = ml_element:create( "QuestMoveToMap", c_questmovetomap, e_questmovetomap, 25 )
+    self:add( ke_questMoveToMap, self.process_elements)
+	
+	local ke_questHandover = ml_element:create( "QuestHandover", c_questhandover, e_questhandover, 15 )
+    self:add( ke_questHandover, self.process_elements)
+
+	local ke_questComplete = ml_element:create( "QuestComplete", c_questcomplete, e_questcomplete, 15 )
+    self:add( ke_questComplete, self.process_elements)	
+	
+	local ke_questSelectConvIndex = ml_element:create( "QuestSelectConvIndex", c_questselectconvindex, e_questselectconvindex, 12 )
+    self:add( ke_questSelectConvIndex, self.process_elements)
+	
+	local ke_questInteract = ml_element:create( "QuestInteract", c_questinteract, e_questinteract, 10 )
+    self:add( ke_questInteract, self.process_elements)
+	
+	local ke_questMoveToPos = ml_element:create( "QuestMoveToPos", c_questmovetopos, e_questmovetopos, 05 )
+    self:add( ke_questMoveToPos, self.process_elements)
+	
+	local ke_questItemCastDelay = ml_element:create( "QuestInteractDelay", c_questitemcastdelay, e_questitemcastdelay, 3 )
+    self:add( ke_questItemCastDelay, self.process_elements)
+	
+	local ke_questAtInteract = ml_element:create( "QuestAtInteract", c_atinteract, e_atinteract, 10 )
+    self:add( ke_questAtInteract, self.overwatch_elements)
+	
 	self.task_complete_execute = quest_step_complete_execute
 	self:AddTaskCheckCEs()
 end
